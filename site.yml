@@ -1,0 +1,23 @@
+---
+- name: Lab baseline
+  hosts: rhel
+  become: true
+  roles:
+    - role: registration
+      tags: registration
+    - role: ssh_hardening
+      tags: ssh_hardening
+    - role: selinux
+      tags: selinux
+    - role: firewalld
+      tags: firewalld
+    - role: chrony
+      tags: chrony
+    - role: updates
+      tags: updates
+    - role: packages
+      tags: packages
+    - role: dns_resolver
+      tags: dns_resolver
+    - role: monitoring_agent
+      tags: monitoring_agent

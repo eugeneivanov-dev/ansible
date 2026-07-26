@@ -1,0 +1,5 @@
+---
+- name: Ensure SELinux is enforcing with targeted policy
+  ansible.posix.selinux:
+    state: enforcing
+    policy: targeted

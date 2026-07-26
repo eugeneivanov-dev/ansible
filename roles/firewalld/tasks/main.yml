@@ -1,0 +1,27 @@
+---
+- name: Ensure firewalld is enabled and started
+  ansible.builtin.systemd_service:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: Remove cockpit service from default zone
+  ansible.posix.firewalld:
+    service: cockpit
+    state: disabled
+    permanent: true
+  notify: Firewalld | Reload firewalld
+
+- name: Remove dhcpv6-client service from default zone
+  ansible.posix.firewalld:
+    service: dhcpv6-client
+    state: disabled
+    permanent: true
+  notify: Firewalld | Reload firewalld
+
+- name: Ensure ssh service in default zone
+  ansible.posix.firewalld:
+    service: ssh
+    state: enabled
+    permanent: true
+  notify: Firewalld | Reload firewalld

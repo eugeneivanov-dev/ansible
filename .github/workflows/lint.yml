@@ -1,0 +1,27 @@
+---
+name: lint
+
+on:  # yamllint disable-line rule:truthy
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned linters
+        run: pip install yamllint==1.38.0 ansible-lint==26.6.0
+
+      - name: Run yamllint
+        run: yamllint .
+
+      - name: Run ansible-lint
+        run: ansible-lint --profile production

@@ -1,0 +1,7 @@
+---
+- name: Register system with Red Hat Subscription Management
+  community.general.redhat_subscription:
+    state: present
+    username: "{{ vault_rhsm_username }}"
+    password: "{{ vault_rhsm_password }}"
+  no_log: true

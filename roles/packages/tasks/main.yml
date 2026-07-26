@@ -1,0 +1,10 @@
+---
+- name: Ensure baseline packages are installed
+  ansible.builtin.dnf:
+    name:
+      - vim
+      - bash-completion
+      - tar
+      - policycoreutils-python-utils
+      - bind-utils
+    state: present

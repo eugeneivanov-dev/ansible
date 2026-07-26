@@ -1,0 +1,30 @@
+---
+- name: Bootstrap automation user
+  hosts: rhel
+  become: true
+
+  vars:
+    bootstrap_pubkey_path: "{{ lookup('ansible.builtin.env', 'HOME') + '/.ssh/id_ed25519.pub' }}"
+
+  tasks:
+    - name: Create ansible user
+      ansible.builtin.user:
+        name: ansible
+        password_lock: true
+        shell: /bin/bash
+        state: present
+
+    - name: Grant passwordless sudo
+      ansible.builtin.copy:
+        content: "ansible ALL=(ALL) NOPASSWD: ALL\n"
+        dest: /etc/sudoers.d/ansible
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: Authorize ansible-admin public key
+      ansible.posix.authorized_key:
+        user: ansible
+        key: "{{ lookup('ansible.builtin.file', bootstrap_pubkey_path) }}"
+        state: present

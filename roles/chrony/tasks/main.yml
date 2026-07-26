@@ -1,0 +1,20 @@
+---
+- name: Ensure chrony package is installed
+  ansible.builtin.dnf:
+    name: chrony
+    state: present
+
+- name: Deploy chrony.conf from template
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart chronyd
+
+- name: Ensure chronyd is enabled and started
+  ansible.builtin.service:
+    name: chronyd
+    enabled: true
+    state: started

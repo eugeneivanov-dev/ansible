@@ -1,0 +1,16 @@
+# local artifacts
+*.retry
+*.log
+.DS_Store
+
+# editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# vault password never lives in the repo
+.vault_pass
+vault_pass*
+
+# encrypted vault stays out of git — only vault.yml.example is committed
+group_vars/**/vault.yml

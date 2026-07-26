@@ -1,0 +1,16 @@
+---
+- name: Deploy SSH hardening drop-in
+  ansible.builtin.copy:
+    src: 99-hardening.conf
+    dest: /etc/ssh/sshd_config.d/99-hardening.conf
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Restart sshd
+
+- name: Ensure sshd is enabled and started
+  ansible.builtin.service:
+    name: sshd
+    enabled: true
+    state: started

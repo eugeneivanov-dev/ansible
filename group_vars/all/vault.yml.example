@@ -1,0 +1,12 @@
+---
+# Ansible Vault variables — template.
+# Copy to group_vars/all/vault.yml, fill in real values, encrypt:
+#   ansible-vault encrypt group_vars/all/vault.yml
+# The real vault.yml never enters git (see .gitignore).
+
+# Red Hat Subscription Manager credentials (rhel hosts)
+vault_rhsm_username: "your-rhsm-username"
+vault_rhsm_password: "your-rhsm-password"
+
+# SSH user for managed hosts (ubuntu group inventory)
+vault_ansible_user: "youruser"

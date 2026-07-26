@@ -1,0 +1,53 @@
+---
+- name: Assert default IPv4 interface fact is available
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['default_ipv4'] is defined
+      - ansible_facts['default_ipv4'].interface is defined
+      - ansible_facts['default_ipv4'].interface | length > 0
+    fail_msg: >-
+      default_ipv4.interface fact is not available — cannot determine
+      the primary interface for resolver configuration
+
+- name: Get connection name for default interface
+  ansible.builtin.command: >
+    nmcli -g GENERAL.CONNECTION device show
+    {{ ansible_facts['default_ipv4'].interface }}
+  register: dns_resolver_device_conn
+  changed_when: false
+  check_mode: false
+
+- name: Assert connection name is not empty
+  ansible.builtin.assert:
+    that:
+      - dns_resolver_device_conn.stdout | trim | length > 0
+    fail_msg: >-
+      No NetworkManager connection is associated with interface
+      {{ ansible_facts['default_ipv4'].interface }} — refusing to guess
+
+- name: Determine primary connection
+  ansible.builtin.set_fact:
+    dns_resolver_connection: "{{ dns_resolver_device_conn.stdout | trim }}"
+
+- name: Read current DNS servers
+  ansible.builtin.command: nmcli -g ipv4.dns connection show "{{ dns_resolver_connection }}"
+  register: dns_resolver_current_dns
+  changed_when: false
+  check_mode: false
+
+- name: Read current DNS search domain
+  ansible.builtin.command: nmcli -g ipv4.dns-search connection show "{{ dns_resolver_connection }}"
+  register: dns_resolver_current_search
+  changed_when: false
+  check_mode: false
+
+- name: Align resolver settings to target
+  ansible.builtin.command: >
+    nmcli connection modify "{{ dns_resolver_connection }}"
+    ipv4.dns "{{ dns_resolver_servers }}"
+    ipv4.dns-search "{{ dns_resolver_search }}"
+  when: >
+    dns_resolver_current_dns.stdout | replace(',', ' ') != dns_resolver_servers
+    or dns_resolver_current_search.stdout | replace(',', ' ') != dns_resolver_search
+  changed_when: true
+  notify: Reactivate connection

@@ -1,0 +1,25 @@
+---
+- name: Ensure dnf-utils is installed
+  ansible.builtin.dnf:
+    name: dnf-utils
+    state: present
+
+- name: Update all packages to latest
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest  # noqa: package-latest
+
+- name: Check if reboot is required
+  ansible.builtin.command: needs-restarting -r
+  register: updates_reboot_check
+  changed_when: false
+  failed_when: updates_reboot_check.rc not in [0, 1]
+
+- name: Report reboot required
+  ansible.builtin.debug:
+    msg: "Reboot required to apply updates"
+  when: updates_reboot_check.rc == 1
+
+- name: Reboot if allowed
+  ansible.builtin.reboot:
+  when: updates_allow_reboot | bool and updates_reboot_check.rc == 1
