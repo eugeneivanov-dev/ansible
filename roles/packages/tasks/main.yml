@@ -7,4 +7,5 @@
       - tar
       - policycoreutils-python-utils
       - bind-utils
+      - openssl
     state: present
