@@ -132,6 +132,11 @@ Ansible project. The public repository starts with a clean history: the
 private one carries encrypted secrets and early lab-specific details that
 have no place in public git history, even encrypted.
 
+The reasoning behind the transition is written up in
+[Going Public: the Decisions Behind Opening My Ansible Repo](https://eugeneivanov.dev/journal/labnotes/going-public-ansible-repo-decisions/),
+and the mechanics in
+[Going Public: the Ansible Repo Transition, Step by Step](https://eugeneivanov.dev/journal/labnotes/going-public-ansible-repo-transition/).
+
 ## License
 
 MIT
