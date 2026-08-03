@@ -3,6 +3,7 @@
   ansible.builtin.apt:
     name: systemd-timesyncd
     state: absent
+    purge: true
 
 - name: Ensure chrony package is installed
   ansible.builtin.apt:
