@@ -26,5 +26,7 @@
   hosts: ubuntu
   become: true
   roles:
+    - role: ubuntu_ssh_hardening
+      tags: ubuntu_ssh_hardening
     - role: ubuntu_chrony
       tags: ubuntu_chrony
