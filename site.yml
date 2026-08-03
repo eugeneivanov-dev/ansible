@@ -25,4 +25,6 @@
 - name: Ubuntu baseline
   hosts: ubuntu
   become: true
-  roles: []
+  roles:
+    - role: ubuntu_chrony
+      tags: ubuntu_chrony
