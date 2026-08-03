@@ -1,0 +1,4 @@
+---
+lab_dns_servers: "192.168.10.2 192.168.10.3"
+lab_dns_search: "lab.eugeneivanov.dev"
+lab_monitor_ip: "192.168.10.90"
