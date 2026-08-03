@@ -1,7 +1,7 @@
 ---
 # Ansible Vault variables — template.
-# Copy to group_vars/all/vault.yml, fill in real values, encrypt:
-#   ansible-vault encrypt group_vars/all/vault.yml
+# Copy to group_vars/rhel/vault.yml, fill in real values, encrypt:
+#   ansible-vault encrypt group_vars/rhel/vault.yml
 # The real vault.yml never enters git (see .gitignore).
 
 # Red Hat Subscription Manager credentials (rhel hosts)
