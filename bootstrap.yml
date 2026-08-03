@@ -1,6 +1,6 @@
 ---
 - name: Bootstrap automation user
-  hosts: rhel
+  hosts: rhel:ubuntu
   become: true
 
   vars:

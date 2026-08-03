@@ -2,4 +2,3 @@
 rhel_dns_resolver_servers: "{{ lab_dns_servers }}"
 rhel_dns_resolver_search: "{{ lab_dns_search }}"
 rhel_monitoring_agent_monitor_ip: "{{ lab_monitor_ip }}"
-bootstrap_sudo_group: wheel
