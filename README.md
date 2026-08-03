@@ -25,11 +25,11 @@ Project pages:
 ```
 ansible.cfg               defaults: inventory path, remote user
 bootstrap.yml             one-time play: creates the automation user on new hosts (both fleets)
-site.yml                  two plays: rhel baseline (nine roles), ubuntu baseline (roles land as they are written)
+site.yml                  two plays: rhel baseline (nine roles), ubuntu baseline (first two roles, growing)
 inventory/hosts.yml       two flat groups: rhel (managed), ubuntu (under adoption)
-group_vars/all/           main.yml — lab facts (resolvers, search domain, monitor address); vault.yml.example — template for the encrypted vault
-group_vars/rhel/          rhel role inputs, referencing the lab facts
-roles/                    fleet-prefixed baseline roles (rhel_*, ubuntu_* as they arrive), one topic each
+group_vars/all/           main.yml — lab facts (resolvers, search domain, monitor address)
+group_vars/rhel/          rhel role inputs, referencing the lab facts; vault.yml.example — template for the encrypted vault
+roles/                    fleet-prefixed baseline roles (rhel_*, ubuntu_*), one topic each
 ```
 
 ## Variables
@@ -38,7 +38,7 @@ Where values come from and which hosts see them:
 
 ```mermaid
 flowchart TB
-    vault["group_vars/all/vault.yml<br/>encrypted, outside git"]
+    vault["group_vars/rhel/vault.yml<br/>encrypted, outside git"]
     lab_facts["group_vars/all/main.yml<br/>lab facts: resolvers, search domain, monitor IP"]
     rhel_vars["group_vars/rhel/main.yml<br/>rhel role inputs, referencing lab facts"]
     rhel["rhel group — managed by site.yml"]
@@ -54,7 +54,8 @@ Lab facts — values that belong to the lab itself, not to any fleet — live
 once in `group_vars/all/main.yml`. Fleet role inputs reference them
 (`rhel_dns_resolver_servers: "{{ lab_dns_servers }}"`), so a value changes
 in one place and every consumer follows. Roles carry no site-specific
-values.
+values. Secrets sit in the group that consumes them: the vault lives in
+`group_vars/rhel/`, visible to the rhel play only.
 
 Both fleets connect under one automation user — the `remote_user` default
 in `ansible.cfg`. Ubuntu hosts answer it only after `bootstrap.yml` has run
@@ -63,11 +64,11 @@ full-fleet runs, which is exactly the adoption backlog made visible.
 
 ## Roles and execution order
 
-Role names and tags carry the fleet prefix: `rhel_*` today, `ubuntu_*` as
-the Ubuntu roles are written. `site.yml` runs the rhel play in this order:
+Role names and tags carry the fleet prefix: `rhel_*` and `ubuntu_*`.
+`site.yml` runs the rhel play in this order:
 
 1. **rhel_registration** — subscription-manager with credentials from vault
-2. **rhel_ssh_hardening** — key-only SSH, config validated before restart
+2. **rhel_ssh_hardening** — key-only SSH, config validated before restart, effective policy asserted via `sshd -T`
 3. **rhel_selinux** — enforcing
 4. **rhel_firewalld** — deny-by-default zones
 5. **rhel_chrony** — time sync
@@ -76,16 +77,22 @@ the Ubuntu roles are written. `site.yml` runs the rhel play in this order:
 8. **rhel_dns_resolver** — clients point at the lab's own nameservers
 9. **rhel_monitoring_agent** — node_exporter, reporting to the lab's monitoring host
 
+The ubuntu play follows with the roles written so far (the set grows with
+the Ubuntu Baseline project):
+
+1. **ubuntu_ssh_hardening** — key-only SSH via a drop-in named to sort before cloud-init's, config validated before restart, effective policy asserted via `sshd -T`
+2. **ubuntu_chrony** — time sync via chrony, replacing systemd-timesyncd
+
 The order is designed for the worst moment of interruption: security layers
 run before updates, so a play that dies halfway leaves the host locked down
-and unpatched rather than patched and open. The ubuntu play mirrors the same
-principle as its roles arrive.
+and unpatched rather than patched and open. Both plays follow the same
+principle.
 
 ## Secrets
 
 The encrypted vault file never enters git. The repository carries
-`group_vars/all/vault.yml.example` with every expected key; the real
-`group_vars/all/vault.yml` is created from it, encrypted with Ansible Vault,
+`group_vars/rhel/vault.yml.example` with every expected key; the real
+`group_vars/rhel/vault.yml` is created from it, encrypted with Ansible Vault,
 and stays on the machines that run plays. The vault passphrase lives outside
 the repository too — its path is provided by the `ANSIBLE_VAULT_PASSWORD_FILE`
 environment variable on each machine.
