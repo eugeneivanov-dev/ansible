@@ -3,12 +3,15 @@
 [![lint](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml/badge.svg)](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml)
 
 Configuration management for my home lab. This repository holds the Ansible
-baseline for the lab's RHEL fleet — the same standard every VM used to get
+baseline for the lab's fleets — the same standard every VM used to get
 by hand, rewritten as idempotent roles. A new VM reaches the lab standard by
 running a playbook; an existing one proves it still matches by running the
-same playbook in check mode.
+same playbook in check mode. The RHEL fleet is fully managed; the Ubuntu
+fleet is being brought under the same discipline right now.
 
-Project page: [Ansible Baseline for the Lab](https://eugeneivanov.dev/projects/ansible-baseline-for-the-lab/)
+Project pages:  
+[Ansible Baseline for the Lab](https://eugeneivanov.dev/projects/ansible-baseline-for-the-lab/),  
+[Ubuntu Baseline for the Lab](https://eugeneivanov.dev/projects/ubuntu-baseline-for-the-lab/) (in progress)
 
 ## Requirements
 
@@ -47,11 +50,12 @@ flowchart TB
 
 One vault, visible to both groups — secrets separated by nothing but need:
 rhel consumes the subscription credentials, ubuntu consumes the SSH user.
-The ubuntu group is deliberately thin for now — reachable and inventoried,
-with its own baseline planned as a separate project. Open per-group
-configuration lives next to its group. Roles carry no site-specific values.
-`bootstrap.yml` additionally carries its own play variable for the public
-key path — see Usage.
+The ubuntu group currently sits at connectivity-check level and is being
+brought under management by the
+[Ubuntu Baseline project](https://eugeneivanov.dev/projects/ubuntu-baseline-for-the-lab/) —
+parallel roles, same workflow. Open per-group configuration lives next to
+its group. Roles carry no site-specific values. `bootstrap.yml` additionally
+carries its own play variable for the public key path — see Usage.
 
 ## Roles and execution order
 
@@ -111,10 +115,13 @@ ansible-playbook site.yml --tags chrony
 
 ## Scope
 
-This is the OS baseline for RHEL hosts — the layer every service stands on.
-The Ubuntu hosts sit in the inventory at connectivity-check level; their
-baseline is a separate future project. Application deployment stays with each
-service's own mechanism.
+This is the OS baseline for the lab's hosts — the layer every service stands
+on. The RHEL fleet is fully managed. The Ubuntu fleet is being brought under
+the same discipline by the
+[Ubuntu Baseline project](https://eugeneivanov.dev/projects/ubuntu-baseline-for-the-lab/):
+parallel roles built on Ubuntu's native mechanisms, in this repository, on
+this workflow. Application deployment stays with each service's own
+mechanism.
 
 This is a homelab, not a reference implementation: the code encodes my lab's
 decisions — addressing, DNS names, package choices — and is published as a
