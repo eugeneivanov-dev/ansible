@@ -21,3 +21,8 @@
       tags: rhel_dns_resolver
     - role: rhel_monitoring_agent
       tags: rhel_monitoring_agent
+
+- name: Ubuntu baseline
+  hosts: ubuntu
+  become: true
+  roles: []
