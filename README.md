@@ -17,19 +17,19 @@ Project pages:
 
 - ansible-core 2.21
 - collections from `requirements.yml` (`ansible-galaxy collection install -r requirements.yml`)
-- managed hosts: RHEL 10, reachable over SSH with Python present
+- managed hosts: RHEL 10 and Ubuntu Server 24.04 LTS, reachable over SSH with Python present
 - an Ansible Vault file created from the template (see Secrets below)
 
 ## Layout
 
 ```
 ansible.cfg               defaults: inventory path, remote user
-bootstrap.yml             one-time play: creates the automation user on new hosts
-site.yml                  main play: full baseline against the rhel group
-inventory/hosts.yml       two groups: rhel (managed), ubuntu (connectivity checks only)
-group_vars/all/           vault.yml.example — template for the encrypted vault
-group_vars/rhel/          site-specific values: resolvers, search domain, monitor address
-roles/                    nine baseline roles, one topic each
+bootstrap.yml             one-time play: creates the automation user on new hosts (both fleets)
+site.yml                  two plays: rhel baseline (nine roles), ubuntu baseline (roles land as they are written)
+inventory/hosts.yml       two flat groups: rhel (managed), ubuntu (under adoption)
+group_vars/all/           main.yml — lab facts (resolvers, search domain, monitor address); vault.yml.example — template for the encrypted vault
+group_vars/rhel/          rhel role inputs, referencing the lab facts
+roles/                    fleet-prefixed baseline roles (rhel_*, ubuntu_* as they arrive), one topic each
 ```
 
 ## Variables
@@ -39,41 +39,47 @@ Where values come from and which hosts see them:
 ```mermaid
 flowchart TB
     vault["group_vars/all/vault.yml<br/>encrypted, outside git"]
-    rhel_vars["group_vars/rhel/main.yml<br/>resolvers, search domain, monitor IP"]
+    lab_facts["group_vars/all/main.yml<br/>lab facts: resolvers, search domain, monitor IP"]
+    rhel_vars["group_vars/rhel/main.yml<br/>rhel role inputs, referencing lab facts"]
     rhel["rhel group — managed by site.yml"]
-    ubuntu["ubuntu group — connectivity checks only"]
+    ubuntu["ubuntu group — under adoption"]
 
     vault -- "vault_rhsm_username, vault_rhsm_password" --> rhel
-    vault -- "vault_ansible_user" --> ubuntu
+    lab_facts --> rhel_vars
+    lab_facts --> ubuntu
     rhel_vars --> rhel
 ```
 
-One vault, visible to both groups — secrets separated by nothing but need:
-rhel consumes the subscription credentials, ubuntu consumes the SSH user.
-The ubuntu group currently sits at connectivity-check level and is being
-brought under management by the
-[Ubuntu Baseline project](https://eugeneivanov.dev/projects/ubuntu-baseline-for-the-lab/) —
-parallel roles, same workflow. Open per-group configuration lives next to
-its group. Roles carry no site-specific values. `bootstrap.yml` additionally
-carries its own play variable for the public key path — see Usage.
+Lab facts — values that belong to the lab itself, not to any fleet — live
+once in `group_vars/all/main.yml`. Fleet role inputs reference them
+(`rhel_dns_resolver_servers: "{{ lab_dns_servers }}"`), so a value changes
+in one place and every consumer follows. Roles carry no site-specific
+values.
+
+Both fleets connect under one automation user — the `remote_user` default
+in `ansible.cfg`. Ubuntu hosts answer it only after `bootstrap.yml` has run
+against them; until a host is adopted, it shows up as unreachable in
+full-fleet runs, which is exactly the adoption backlog made visible.
 
 ## Roles and execution order
 
-`site.yml` runs the roles in this order:
+Role names and tags carry the fleet prefix: `rhel_*` today, `ubuntu_*` as
+the Ubuntu roles are written. `site.yml` runs the rhel play in this order:
 
-1. **registration** — subscription-manager with credentials from vault
-2. **ssh_hardening** — key-only SSH, config validated before restart
-3. **selinux** — enforcing
-4. **firewalld** — deny-by-default zones
-5. **chrony** — time sync
-6. **updates** — package updates; reboot only behind an explicit flag, off by default
-7. **packages** — the lab's standard package set
-8. **dns_resolver** — clients point at the lab's own nameservers
-9. **monitoring_agent** — node_exporter, reporting to the lab's monitoring host
+1. **rhel_registration** — subscription-manager with credentials from vault
+2. **rhel_ssh_hardening** — key-only SSH, config validated before restart
+3. **rhel_selinux** — enforcing
+4. **rhel_firewalld** — deny-by-default zones
+5. **rhel_chrony** — time sync
+6. **rhel_updates** — package updates; reboot only behind an explicit flag, off by default
+7. **rhel_packages** — the lab's standard package set
+8. **rhel_dns_resolver** — clients point at the lab's own nameservers
+9. **rhel_monitoring_agent** — node_exporter, reporting to the lab's monitoring host
 
 The order is designed for the worst moment of interruption: security layers
 run before updates, so a play that dies halfway leaves the host locked down
-and unpatched rather than patched and open.
+and unpatched rather than patched and open. The ubuntu play mirrors the same
+principle as its roles arrive.
 
 ## Secrets
 
@@ -103,14 +109,17 @@ control VM in the lab.
 # (SSH as your initial user whose key is already on the host; -K asks for sudo password)
 ansible-playbook bootstrap.yml --limit newhost.example.com -e ansible_user=youruser -K
 
-# full baseline against the rhel group
+# full baseline
 ansible-playbook site.yml
 
 # drift check against existing hosts
 ansible-playbook site.yml --check
 
 # one role only
-ansible-playbook site.yml --tags chrony
+ansible-playbook site.yml --tags rhel_chrony
+
+# scope a run to one host while developing
+ansible-playbook site.yml --limit test1.lab.eugeneivanov.dev
 ```
 
 ## Scope
