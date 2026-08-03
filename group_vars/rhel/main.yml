@@ -1,4 +1,4 @@
 ---
-dns_resolver_servers: "192.168.10.2 192.168.10.3"
-dns_resolver_search: "lab.eugeneivanov.dev"
-monitoring_agent_monitor_ip: "192.168.10.90"
+rhel_dns_resolver_servers: "192.168.10.2 192.168.10.3"
+rhel_dns_resolver_search: "lab.eugeneivanov.dev"
+rhel_monitoring_agent_monitor_ip: "192.168.10.90"

@@ -13,41 +13,41 @@
   ansible.builtin.command: >
     nmcli -g GENERAL.CONNECTION device show
     {{ ansible_facts['default_ipv4'].interface }}
-  register: dns_resolver_device_conn
+  register: rhel_dns_resolver_device_conn
   changed_when: false
   check_mode: false
 
 - name: Assert connection name is not empty
   ansible.builtin.assert:
     that:
-      - dns_resolver_device_conn.stdout | trim | length > 0
+      - rhel_dns_resolver_device_conn.stdout | trim | length > 0
     fail_msg: >-
       No NetworkManager connection is associated with interface
       {{ ansible_facts['default_ipv4'].interface }} — refusing to guess
 
 - name: Determine primary connection
   ansible.builtin.set_fact:
-    dns_resolver_connection: "{{ dns_resolver_device_conn.stdout | trim }}"
+    rhel_dns_resolver_connection: "{{ rhel_dns_resolver_device_conn.stdout | trim }}"
 
 - name: Read current DNS servers
-  ansible.builtin.command: nmcli -g ipv4.dns connection show "{{ dns_resolver_connection }}"
-  register: dns_resolver_current_dns
+  ansible.builtin.command: nmcli -g ipv4.dns connection show "{{ rhel_dns_resolver_connection }}"
+  register: rhel_dns_resolver_current_dns
   changed_when: false
   check_mode: false
 
 - name: Read current DNS search domain
-  ansible.builtin.command: nmcli -g ipv4.dns-search connection show "{{ dns_resolver_connection }}"
-  register: dns_resolver_current_search
+  ansible.builtin.command: nmcli -g ipv4.dns-search connection show "{{ rhel_dns_resolver_connection }}"
+  register: rhel_dns_resolver_current_search
   changed_when: false
   check_mode: false
 
 - name: Align resolver settings to target
   ansible.builtin.command: >
-    nmcli connection modify "{{ dns_resolver_connection }}"
-    ipv4.dns "{{ dns_resolver_servers }}"
-    ipv4.dns-search "{{ dns_resolver_search }}"
+    nmcli connection modify "{{ rhel_dns_resolver_connection }}"
+    ipv4.dns "{{ rhel_dns_resolver_servers }}"
+    ipv4.dns-search "{{ rhel_dns_resolver_search }}"
   when: >
-    dns_resolver_current_dns.stdout | replace(',', ' ') != dns_resolver_servers
-    or dns_resolver_current_search.stdout | replace(',', ' ') != dns_resolver_search
+    rhel_dns_resolver_current_dns.stdout | replace(',', ' ') != rhel_dns_resolver_servers
+    or rhel_dns_resolver_current_search.stdout | replace(',', ' ') != rhel_dns_resolver_search
   changed_when: true
   notify: Reactivate connection

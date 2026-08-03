@@ -3,21 +3,21 @@
   hosts: rhel
   become: true
   roles:
-    - role: registration
-      tags: registration
-    - role: ssh_hardening
-      tags: ssh_hardening
-    - role: selinux
-      tags: selinux
-    - role: firewalld
-      tags: firewalld
-    - role: chrony
-      tags: chrony
-    - role: updates
-      tags: updates
-    - role: packages
-      tags: packages
-    - role: dns_resolver
-      tags: dns_resolver
-    - role: monitoring_agent
-      tags: monitoring_agent
+    - role: rhel_registration
+      tags: rhel_registration
+    - role: rhel_ssh_hardening
+      tags: rhel_ssh_hardening
+    - role: rhel_selinux
+      tags: rhel_selinux
+    - role: rhel_firewalld
+      tags: rhel_firewalld
+    - role: rhel_chrony
+      tags: rhel_chrony
+    - role: rhel_updates
+      tags: rhel_updates
+    - role: rhel_packages
+      tags: rhel_packages
+    - role: rhel_dns_resolver
+      tags: rhel_dns_resolver
+    - role: rhel_monitoring_agent
+      tags: rhel_monitoring_agent

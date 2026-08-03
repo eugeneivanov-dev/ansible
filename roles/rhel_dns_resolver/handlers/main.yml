@@ -1,0 +1,4 @@
+---
+- name: Reactivate connection
+  ansible.builtin.command: nmcli connection up "{{ rhel_dns_resolver_connection }}"
+  changed_when: true

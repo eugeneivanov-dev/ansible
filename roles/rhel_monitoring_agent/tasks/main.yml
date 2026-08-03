@@ -15,32 +15,32 @@
 
 - name: Check installed node_exporter version
   ansible.builtin.command: /usr/local/bin/node_exporter --version
-  register: monitoring_agent_ne_installed
+  register: rhel_monitoring_agent_ne_installed
   changed_when: false
   failed_when: false
   check_mode: false
 
 - name: Download node_exporter release archive
   ansible.builtin.get_url:
-    url: "{{ monitoring_agent_ne_base }}/v{{ monitoring_agent_ne_version }}/{{ monitoring_agent_ne_archive }}"
-    dest: "/tmp/{{ monitoring_agent_ne_archive }}"
-    checksum: "sha256:{{ monitoring_agent_ne_sha256 }}"
+    url: "{{ rhel_monitoring_agent_ne_base }}/v{{ rhel_monitoring_agent_ne_version }}/{{ rhel_monitoring_agent_ne_archive }}"
+    dest: "/tmp/{{ rhel_monitoring_agent_ne_archive }}"
+    checksum: "sha256:{{ rhel_monitoring_agent_ne_sha256 }}"
     mode: "0644"
-  when: monitoring_agent_ne_version not in monitoring_agent_ne_installed.stdout | default('')
+  when: rhel_monitoring_agent_ne_version not in rhel_monitoring_agent_ne_installed.stdout | default('')
 
 - name: Extract node_exporter binary
   ansible.builtin.unarchive:
-    src: "/tmp/{{ monitoring_agent_ne_archive }}"
+    src: "/tmp/{{ rhel_monitoring_agent_ne_archive }}"
     dest: /usr/local/bin
     remote_src: true
     extra_opts:
       - --strip-components=1
-      - "node_exporter-{{ monitoring_agent_ne_version }}.linux-amd64/node_exporter"
+      - "node_exporter-{{ rhel_monitoring_agent_ne_version }}.linux-amd64/node_exporter"
     owner: root
     group: root
     mode: "0755"
   when:
-    - monitoring_agent_ne_version not in monitoring_agent_ne_installed.stdout | default('')
+    - rhel_monitoring_agent_ne_version not in rhel_monitoring_agent_ne_installed.stdout | default('')
     - not ansible_check_mode
   notify: Restart node_exporter
 
@@ -61,7 +61,7 @@
 
 - name: Allow 9100/tcp from monitor host only
   ansible.posix.firewalld:
-    rich_rule: 'rule family="ipv4" source address="{{ monitoring_agent_monitor_ip }}" port port="9100" protocol="tcp" accept'
+    rich_rule: 'rule family="ipv4" source address="{{ rhel_monitoring_agent_monitor_ip }}" port port="9100" protocol="tcp" accept'
     permanent: true
     state: enabled
   notify: Monitoring agent | Reload firewalld

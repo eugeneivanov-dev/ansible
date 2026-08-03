@@ -1,0 +1,5 @@
+---
+rhel_monitoring_agent_ne_version: "1.12.1"
+rhel_monitoring_agent_ne_sha256: "b51d8a76aa2a9156a55d501aca6276fae09e262259a5e4e831d2c2222f084e63"
+rhel_monitoring_agent_ne_base: "https://github.com/prometheus/node_exporter/releases/download"
+rhel_monitoring_agent_ne_archive: "node_exporter-{{ rhel_monitoring_agent_ne_version }}.linux-amd64.tar.gz"
