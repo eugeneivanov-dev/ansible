@@ -7,4 +7,5 @@
       - tar
       - bind9-dnsutils
       - openssl
+      - qemu-guest-agent
     state: present
