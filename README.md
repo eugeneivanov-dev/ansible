@@ -40,9 +40,12 @@ Where values come from and which hosts see them:
 
 ```mermaid
 flowchart TB
-    vault["group_vars/rhel/vault.yml<br/>encrypted, outside git"]
     lab_facts["group_vars/all/main.yml<br/>lab facts: resolvers, search domain, gateway, monitor IP, node_exporter pin"]
-    rhel_vars["group_vars/rhel/main.yml<br/>rhel role inputs, referencing lab facts"]
+
+    subgraph rhel_inputs["rhel inputs"]
+        vault["group_vars/rhel/vault.yml<br/>encrypted, outside git"]
+        rhel_vars["group_vars/rhel/main.yml<br/>rhel role inputs, referencing lab facts"]
+    end
 
     subgraph ubuntu_inputs["ubuntu inputs"]
         ubuntu_vars["group_vars/ubuntu/main.yml<br/>ubuntu role inputs, referencing lab facts"]
@@ -102,6 +105,21 @@ The order is designed for the worst moment of interruption: security layers
 run before updates, so a play that dies halfway leaves the host locked down
 and unpatched rather than patched and open. Both plays follow the same
 principle.
+
+## Package baseline
+
+The standard set both `*_packages` roles install — general-purpose tools
+every host carries regardless of its service:
+
+| Fleet  | Packages |
+|--------|----------|
+| rhel   | vim, bash-completion, tar, policycoreutils-python-utils, bind-utils, openssl |
+| ubuntu | vim, bash-completion, tar, bind9-dnsutils, openssl, qemu-guest-agent |
+
+The sets differ where the platforms do: SELinux tooling exists only on RHEL,
+`bind-utils` is named `bind9-dnsutils` on Ubuntu, and `qemu-guest-agent`
+ships preinstalled on the RHEL template but not in the Ubuntu installer.
+Changing a set means changing the role and this table in the same commit.
 
 ## Secrets
 
