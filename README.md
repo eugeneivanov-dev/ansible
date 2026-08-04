@@ -10,8 +10,8 @@ same playbook in check mode. The RHEL fleet is fully managed; the Ubuntu
 fleet is being brought under the same discipline right now.
 
 Project pages:  
-[Ansible Baseline for the Lab](https://eugeneivanov.dev/projects/ansible-baseline-for-the-lab/),  
-[Ubuntu Baseline for the Lab](https://eugeneivanov.dev/projects/ubuntu-baseline-for-the-lab/) (in progress)
+[Ansible Baseline for the Lab](https://eugeneivanov.dev/projects/ansible-baseline-for-the-lab/)  
+[Ubuntu Baseline for the Lab](https://eugeneivanov.dev/projects/ubuntu-baseline-for-the-lab/)
 
 ## Requirements
 
@@ -43,8 +43,12 @@ flowchart TB
     vault["group_vars/rhel/vault.yml<br/>encrypted, outside git"]
     lab_facts["group_vars/all/main.yml<br/>lab facts: resolvers, search domain, gateway, monitor IP, node_exporter pin"]
     rhel_vars["group_vars/rhel/main.yml<br/>rhel role inputs, referencing lab facts"]
-    ubuntu_vars["group_vars/ubuntu/main.yml<br/>ubuntu role inputs, referencing lab facts"]
-    host_vars["host_vars/&lt;fqdn&gt;.yml<br/>per-host values"]
+
+    subgraph ubuntu_inputs["ubuntu inputs"]
+        ubuntu_vars["group_vars/ubuntu/main.yml<br/>ubuntu role inputs, referencing lab facts"]
+        host_vars["host_vars/&lt;fqdn&gt;.yml<br/>per-host values"]
+    end
+
     rhel["rhel group — managed by site.yml"]
     ubuntu["ubuntu group — under adoption"]
 
