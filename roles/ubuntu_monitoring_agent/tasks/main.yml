@@ -1,0 +1,66 @@
+---
+- name: Ensure qemu-guest-agent is enabled and started
+  ansible.builtin.systemd_service:
+    name: qemu-guest-agent
+    enabled: true
+    state: started
+
+- name: Remove packaged prometheus-node-exporter (replaced by pinned binary)
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: absent
+    purge: true
+
+- name: Create node_exporter system user
+  ansible.builtin.user:
+    name: node_exporter
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+
+- name: Check installed node_exporter version
+  ansible.builtin.command: /usr/local/bin/node_exporter --version
+  register: ubuntu_monitoring_agent_ne_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Download node_exporter release archive
+  ansible.builtin.get_url:
+    url: "{{ ubuntu_monitoring_agent_ne_base }}/v{{ ubuntu_monitoring_agent_ne_version }}/{{ ubuntu_monitoring_agent_ne_archive }}"
+    dest: "/tmp/{{ ubuntu_monitoring_agent_ne_archive }}"
+    checksum: "sha256:{{ ubuntu_monitoring_agent_ne_sha256 }}"
+    mode: "0644"
+  when: ubuntu_monitoring_agent_ne_version not in ubuntu_monitoring_agent_ne_installed.stdout | default('')
+
+- name: Extract node_exporter binary
+  ansible.builtin.unarchive:
+    src: "/tmp/{{ ubuntu_monitoring_agent_ne_archive }}"
+    dest: /usr/local/bin
+    remote_src: true
+    extra_opts:
+      - --strip-components=1
+      - "node_exporter-{{ ubuntu_monitoring_agent_ne_version }}.linux-amd64/node_exporter"
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - ubuntu_monitoring_agent_ne_version not in ubuntu_monitoring_agent_ne_installed.stdout | default('')
+    - not ansible_check_mode
+  notify: Restart node_exporter
+
+- name: Deploy node_exporter unit file
+  ansible.builtin.template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart node_exporter
+
+- name: Ensure node_exporter is enabled and started
+  ansible.builtin.systemd_service:
+    name: node_exporter
+    enabled: true
+    state: started

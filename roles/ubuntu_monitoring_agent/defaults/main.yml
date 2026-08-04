@@ -1,0 +1,5 @@
+---
+ubuntu_monitoring_agent_ne_version: "{{ lab_node_exporter_version }}"
+ubuntu_monitoring_agent_ne_sha256: "{{ lab_node_exporter_sha256 }}"
+ubuntu_monitoring_agent_ne_base: "{{ lab_node_exporter_base }}"
+ubuntu_monitoring_agent_ne_archive: "{{ lab_node_exporter_archive }}"
