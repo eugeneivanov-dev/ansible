@@ -30,3 +30,5 @@
       tags: ubuntu_ssh_hardening
     - role: ubuntu_chrony
       tags: ubuntu_chrony
+    - role: ubuntu_updates
+      tags: ubuntu_updates

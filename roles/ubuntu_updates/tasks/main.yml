@@ -1,0 +1,26 @@
+---
+- name: Remove unattended-upgrades (updates via playbook only)
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: absent
+    purge: true
+
+- name: Update apt cache and upgrade all packages
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+    cache_valid_time: 3600
+
+- name: Check if reboot is required
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: ubuntu_updates_reboot_check
+
+- name: Report reboot required
+  ansible.builtin.debug:
+    msg: "Reboot required to apply updates"
+  when: ubuntu_updates_reboot_check.stat.exists
+
+- name: Reboot if allowed
+  ansible.builtin.reboot:
+  when: ubuntu_updates_allow_reboot | bool and ubuntu_updates_reboot_check.stat.exists
