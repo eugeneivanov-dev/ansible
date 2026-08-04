@@ -28,6 +28,8 @@
   roles:
     - role: ubuntu_ssh_hardening
       tags: ubuntu_ssh_hardening
+    - role: ubuntu_apparmor
+      tags: ubuntu_apparmor
     - role: ubuntu_chrony
       tags: ubuntu_chrony
     - role: ubuntu_updates

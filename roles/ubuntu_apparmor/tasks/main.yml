@@ -1,0 +1,30 @@
+---
+- name: Ensure apparmor package is installed
+  ansible.builtin.apt:
+    name: apparmor
+    state: present
+
+- name: Ensure apparmor service is enabled and started
+  ansible.builtin.systemd_service:
+    name: apparmor.service
+    enabled: true
+    state: started
+
+- name: Collect AppArmor status
+  ansible.builtin.command: aa-status --json
+  register: ubuntu_apparmor_status
+  changed_when: false
+
+- name: Parse AppArmor status
+  ansible.builtin.set_fact:
+    ubuntu_apparmor_enforce_count: >-
+      {{ (ubuntu_apparmor_status.stdout | from_json).profiles
+         | dict2items | selectattr('value', 'equalto', 'enforce')
+         | list | length }}
+
+- name: Assert AppArmor is active with enforcing profiles
+  ansible.builtin.assert:
+    that:
+      - ubuntu_apparmor_enforce_count | int > 0
+    fail_msg: "AppArmor has no enforcing profiles loaded"
+    success_msg: "AppArmor enforcing profiles: {{ ubuntu_apparmor_enforce_count }}"
