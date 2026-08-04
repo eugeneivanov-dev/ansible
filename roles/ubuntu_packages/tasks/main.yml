@@ -1,0 +1,10 @@
+---
+- name: Ensure baseline packages are installed
+  ansible.builtin.apt:
+    name:
+      - vim
+      - bash-completion
+      - tar
+      - bind9-dnsutils
+      - openssl
+    state: present

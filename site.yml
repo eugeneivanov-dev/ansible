@@ -32,3 +32,5 @@
       tags: ubuntu_chrony
     - role: ubuntu_updates
       tags: ubuntu_updates
+    - role: ubuntu_packages
+      tags: ubuntu_packages
