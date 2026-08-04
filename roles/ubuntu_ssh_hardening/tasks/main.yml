@@ -14,6 +14,21 @@
     name: ssh.socket
     enabled: false
     state: stopped
+  register: ubuntu_ssh_hardening_socket
+
+# Ordered transition: both tasks must run before ssh.service starts,
+# so they cannot be handlers (handlers fire after flush).
+- name: Reload systemd after disabling socket activation  # noqa: no-handler
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: ubuntu_ssh_hardening_socket is changed
+
+- name: Terminate orphaned socket-activated sshd listener  # noqa: no-handler
+  ansible.builtin.command: pkill -f 'sshd.*\[listener\]'
+  when: ubuntu_ssh_hardening_socket is changed
+  register: ubuntu_ssh_hardening_pkill
+  changed_when: ubuntu_ssh_hardening_pkill.rc == 0
+  failed_when: ubuntu_ssh_hardening_pkill.rc not in [0, 1]
 
 - name: Ensure ssh service is enabled and started
   ansible.builtin.systemd_service:
