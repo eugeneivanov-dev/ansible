@@ -1,0 +1,45 @@
+---
+- name: Ensure ufw package is installed
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Allow SSH
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Allow node_exporter from monitor
+  community.general.ufw:
+    rule: allow
+    port: "9100"
+    proto: tcp
+    from_ip: "{{ lab_monitor_ip }}"
+
+- name: Allow per-host app ports from monitor
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    from_ip: "{{ lab_monitor_ip }}"
+  loop: "{{ ubuntu_ufw_app_ports }}"
+
+- name: Set routed policy to deny
+  community.general.ufw:
+    default: deny
+    direction: routed
+
+- name: Set incoming policy to deny
+  community.general.ufw:
+    default: deny
+    direction: incoming
+
+- name: Set outgoing policy to allow
+  community.general.ufw:
+    default: allow
+    direction: outgoing
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled

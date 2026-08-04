@@ -30,6 +30,8 @@
       tags: ubuntu_ssh_hardening
     - role: ubuntu_apparmor
       tags: ubuntu_apparmor
+    - role: ubuntu_ufw
+      tags: ubuntu_ufw
     - role: ubuntu_chrony
       tags: ubuntu_chrony
     - role: ubuntu_updates
