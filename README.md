@@ -30,7 +30,7 @@ inventory/hosts.yml       two flat groups: rhel (managed), ubuntu (under adoptio
 group_vars/all/           main.yml — lab facts (resolvers, search domain, gateway, monitor address, node_exporter pin)
 group_vars/rhel/          rhel role inputs, referencing the lab facts; vault.yml.example — template for the encrypted vault
 group_vars/ubuntu/        ubuntu role inputs, referencing the lab facts
-host_vars/                per-host values (netplan address; app ports at adoption)
+host_vars/                per-host values (netplan address; app ports) — fills up as the live fleet is adopted
 roles/                    fleet-prefixed baseline roles (rhel_*, ubuntu_*), one topic each
 ```
 
@@ -92,7 +92,7 @@ Role names and tags carry the fleet prefix: `rhel_*` and `ubuntu_*`.
 
 The ubuntu play follows in this order:
 
-1. **ubuntu_ssh_hardening** — key-only SSH via a drop-in named to sort before cloud-init's, config validated before restart, effective policy asserted via `sshd -T`
+1. **ubuntu_ssh_hardening** — key-only SSH via a drop-in named to sort before cloud-init's; completes the transition from socket-activated sshd to the classic service, terminating the leftover socket-spawned listener; config validated before restart, effective policy asserted via `sshd -T`
 2. **ubuntu_apparmor** — asserts AppArmor is active with enforcing profiles
 3. **ubuntu_ufw** — deny-by-default; ssh open, exporter and app ports allowed from the monitor host
 4. **ubuntu_chrony** — time sync via chrony, replacing systemd-timesyncd
@@ -158,8 +158,8 @@ ansible-playbook site.yml --check
 # one role only
 ansible-playbook site.yml --tags rhel_chrony
 
-# scope a run to one host while developing
-ansible-playbook site.yml --limit test1.lab.eugeneivanov.dev
+# scope a run to one host
+ansible-playbook site.yml --limit newhost.example.com
 ```
 
 ## Scope
