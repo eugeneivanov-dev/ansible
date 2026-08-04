@@ -1,0 +1,35 @@
+---
+- name: Disable cloud-init network configuration
+  ansible.builtin.copy:
+    content: "network: {config: disabled}\n"
+    dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy lab netplan configuration
+  ansible.builtin.template:
+    src: 00-lab-network.yaml.j2
+    dest: "{{ ubuntu_netplan_config_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Apply netplan configuration
+
+- name: Find foreign netplan files
+  ansible.builtin.find:
+    paths: /etc/netplan
+    file_type: file
+  register: ubuntu_netplan_found
+
+- name: Remove foreign netplan files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ ubuntu_netplan_found.files }}"
+  when: item.path != ubuntu_netplan_config_file
+  notify: Apply netplan configuration
+
+- name: Validate netplan configuration
+  ansible.builtin.command: netplan generate
+  changed_when: false

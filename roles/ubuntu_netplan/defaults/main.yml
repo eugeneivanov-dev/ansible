@@ -1,0 +1,6 @@
+---
+ubuntu_netplan_address: "{{ ubuntu_netplan_address_ip }}/{{ lab_network_prefix }}"
+ubuntu_netplan_gateway: "{{ lab_gateway }}"
+ubuntu_netplan_dns_servers: "{{ lab_dns_servers.split() }}"
+ubuntu_netplan_dns_search: "{{ lab_dns_search }}"
+ubuntu_netplan_config_file: "/etc/netplan/00-lab-network.yaml"

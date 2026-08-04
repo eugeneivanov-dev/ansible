@@ -1,0 +1,16 @@
+network:
+  version: 2
+  ethernets:
+    {{ ubuntu_netplan_interface }}:
+      addresses:
+        - "{{ ubuntu_netplan_address }}"
+      nameservers:
+        addresses:
+{% for server in ubuntu_netplan_dns_servers %}
+          - {{ server }}
+{% endfor %}
+        search:
+          - {{ ubuntu_netplan_dns_search }}
+      routes:
+        - to: "default"
+          via: "{{ ubuntu_netplan_gateway }}"

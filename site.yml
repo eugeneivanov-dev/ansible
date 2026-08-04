@@ -38,5 +38,7 @@
       tags: ubuntu_updates
     - role: ubuntu_packages
       tags: ubuntu_packages
+    - role: ubuntu_netplan
+      tags: ubuntu_netplan
     - role: ubuntu_monitoring_agent
       tags: ubuntu_monitoring_agent
