@@ -25,10 +25,12 @@ Project pages:
 ```
 ansible.cfg               defaults: inventory path, remote user
 bootstrap.yml             one-time play: creates the automation user on new hosts (both fleets)
-site.yml                  two plays: rhel baseline (nine roles), ubuntu baseline (first two roles, growing)
+site.yml                  two plays: rhel baseline (nine roles), ubuntu baseline (eight roles)
 inventory/hosts.yml       two flat groups: rhel (managed), ubuntu (under adoption)
-group_vars/all/           main.yml — lab facts (resolvers, search domain, monitor address)
+group_vars/all/           main.yml — lab facts (resolvers, search domain, gateway, monitor address, node_exporter pin)
 group_vars/rhel/          rhel role inputs, referencing the lab facts; vault.yml.example — template for the encrypted vault
+group_vars/ubuntu/        ubuntu role inputs, referencing the lab facts
+host_vars/                per-host values (netplan address; app ports at adoption)
 roles/                    fleet-prefixed baseline roles (rhel_*, ubuntu_*), one topic each
 ```
 
@@ -39,15 +41,19 @@ Where values come from and which hosts see them:
 ```mermaid
 flowchart TB
     vault["group_vars/rhel/vault.yml<br/>encrypted, outside git"]
-    lab_facts["group_vars/all/main.yml<br/>lab facts: resolvers, search domain, monitor IP"]
+    lab_facts["group_vars/all/main.yml<br/>lab facts: resolvers, search domain, gateway, monitor IP, node_exporter pin"]
     rhel_vars["group_vars/rhel/main.yml<br/>rhel role inputs, referencing lab facts"]
+    ubuntu_vars["group_vars/ubuntu/main.yml<br/>ubuntu role inputs, referencing lab facts"]
+    host_vars["host_vars/&lt;fqdn&gt;.yml<br/>per-host values"]
     rhel["rhel group — managed by site.yml"]
     ubuntu["ubuntu group — under adoption"]
 
     vault -- "vault_rhsm_username, vault_rhsm_password" --> rhel
     lab_facts --> rhel_vars
-    lab_facts --> ubuntu
+    lab_facts --> ubuntu_vars
     rhel_vars --> rhel
+    ubuntu_vars --> ubuntu
+    host_vars --> ubuntu
 ```
 
 Lab facts — values that belong to the lab itself, not to any fleet — live
@@ -77,11 +83,16 @@ Role names and tags carry the fleet prefix: `rhel_*` and `ubuntu_*`.
 8. **rhel_dns_resolver** — clients point at the lab's own nameservers
 9. **rhel_monitoring_agent** — node_exporter, reporting to the lab's monitoring host
 
-The ubuntu play follows with the roles written so far (the set grows with
-the Ubuntu Baseline project):
+The ubuntu play follows in this order:
 
 1. **ubuntu_ssh_hardening** — key-only SSH via a drop-in named to sort before cloud-init's, config validated before restart, effective policy asserted via `sshd -T`
-2. **ubuntu_chrony** — time sync via chrony, replacing systemd-timesyncd
+2. **ubuntu_apparmor** — asserts AppArmor is active with enforcing profiles
+3. **ubuntu_ufw** — deny-by-default; ssh open, exporter and app ports allowed from the monitor host
+4. **ubuntu_chrony** — time sync via chrony, replacing systemd-timesyncd
+5. **ubuntu_updates** — unattended-upgrades removed, updates run through the playbook only; reboot behind an explicit flag, off by default
+6. **ubuntu_packages** — the lab's standard package set
+7. **ubuntu_netplan** — owns the host's netplan configuration; cloud-init network config disabled
+8. **ubuntu_monitoring_agent** — node_exporter as a pinned binary, replacing the packaged exporter
 
 The order is designed for the worst moment of interruption: security layers
 run before updates, so a play that dies halfway leaves the host locked down
