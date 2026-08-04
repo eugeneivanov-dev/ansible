@@ -2,3 +2,7 @@
 lab_dns_servers: "192.168.10.2 192.168.10.3"
 lab_dns_search: "lab.eugeneivanov.dev"
 lab_monitor_ip: "192.168.10.90"
+lab_node_exporter_version: "1.12.1"
+lab_node_exporter_sha256: "b51d8a76aa2a9156a55d501aca6276fae09e262259a5e4e831d2c2222f084e63"
+lab_node_exporter_base: "https://github.com/prometheus/node_exporter/releases/download"
+lab_node_exporter_archive: "node_exporter-{{ lab_node_exporter_version }}.linux-amd64.tar.gz"
