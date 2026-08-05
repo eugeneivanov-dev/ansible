@@ -1,3 +1,5 @@
+[![eugeneivanov.dev — Infrastructure Engineering](assets/eugeneivanov-dev-logo_1280.webp)](https://eugeneivanov.dev)
+
 # ansible
 
 [![lint](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml/badge.svg)](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml)
