@@ -14,6 +14,7 @@
   register: rhel_updates_reboot_check
   changed_when: false
   failed_when: rhel_updates_reboot_check.rc not in [0, 1]
+  check_mode: false
 
 - name: Report reboot required
   ansible.builtin.debug:
