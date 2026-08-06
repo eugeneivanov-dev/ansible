@@ -1,0 +1,8 @@
+---
+ubuntu_netplan_address_ip: "192.168.10.60"
+
+ubuntu_ufw_app_ports:
+  - port: "25565"
+    from: "192.168.30.0/24"
+  - port: "25565"
+    from: "10.22.22.0/24"

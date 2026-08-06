@@ -1,0 +1,6 @@
+---
+ubuntu_netplan_address_ip: "192.168.10.70"
+
+ubuntu_ufw_app_ports:
+  - port: "8000"
+    from: "{{ lab_monitor_ip }}"
