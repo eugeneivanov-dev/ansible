@@ -6,7 +6,8 @@ Wants=network-online.target
 [Service]
 User=node_exporter
 Group=node_exporter
-ExecStart=/usr/local/bin/node_exporter
+ExecStart=/usr/local/bin/node_exporter{% if ubuntu_monitoring_agent_textfile_dir %} --collector.textfile.directory={{ ubuntu_monitoring_agent_textfile_dir }}{% endif %}
+
 Restart=on-failure
 
 [Install]
