@@ -4,6 +4,12 @@
     name: ufw
     state: present
 
+- name: Remove distro OpenSSH profile rule (replaced by explicit 22/tcp)
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+    delete: true
+
 - name: Allow SSH
   community.general.ufw:
     rule: allow
