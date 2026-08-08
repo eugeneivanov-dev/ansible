@@ -4,11 +4,18 @@
     name: ufw
     state: present
 
+- name: Collect current ufw rules
+  ansible.builtin.command: ufw status
+  register: ubuntu_ufw_current_rules
+  changed_when: false
+  check_mode: false
+
 - name: Remove distro OpenSSH profile rule (replaced by explicit 22/tcp)
   community.general.ufw:
     rule: allow
     name: OpenSSH
     delete: true
+  when: "'OpenSSH' in ubuntu_ufw_current_rules.stdout"
 
 - name: Allow SSH
   community.general.ufw:
