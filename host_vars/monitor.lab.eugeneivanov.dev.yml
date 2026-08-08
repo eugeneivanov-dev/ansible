@@ -1,2 +1,12 @@
 ---
 ubuntu_netplan_address_ip: "192.168.10.90"
+
+ubuntu_ufw_app_ports:
+  - port: "80"
+    from: "192.168.30.0/24"
+  - port: "80"
+    from: "10.22.22.0/24"
+  - port: "443"
+    from: "192.168.30.0/24"
+  - port: "443"
+    from: "10.22.22.0/24"
