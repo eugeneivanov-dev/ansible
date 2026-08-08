@@ -8,8 +8,8 @@ Configuration management for my home lab. This repository holds the Ansible
 baseline for the lab's fleets — the same standard every VM used to get
 by hand, rewritten as idempotent roles. A new VM reaches the lab standard by
 running a playbook; an existing one proves it still matches by running the
-same playbook in check mode. The RHEL fleet is fully managed; the Ubuntu
-fleet is being brought under the same discipline right now.
+same playbook in check mode. Both fleets — RHEL and Ubuntu — are fully
+managed from here.
 
 Project pages:  
 [Ansible Baseline for the Lab](https://eugeneivanov.dev/projects/ansible-baseline-for-the-lab/)  
@@ -28,11 +28,11 @@ Project pages:
 ansible.cfg               defaults: inventory path, remote user
 bootstrap.yml             one-time play: creates the automation user on new hosts (both fleets)
 site.yml                  two plays: rhel baseline (nine roles), ubuntu baseline (eight roles)
-inventory/hosts.yml       two flat groups: rhel (managed), ubuntu (under adoption)
+inventory/hosts.yml       two flat groups: rhel, ubuntu — both managed
 group_vars/all/           main.yml — lab facts (resolvers, search domain, gateway, monitor address, node_exporter pin)
 group_vars/rhel/          rhel role inputs, referencing the lab facts; vault.yml.example — template for the encrypted vault
 group_vars/ubuntu/        ubuntu role inputs, referencing the lab facts
-host_vars/                per-host values (netplan address; app ports) — fills up as the live fleet is adopted
+host_vars/                per-host values: netplan address, app ports as port + source pairs
 roles/                    fleet-prefixed baseline roles (rhel_*, ubuntu_*), one topic each
 ```
 
@@ -55,7 +55,7 @@ flowchart TB
     end
 
     rhel["rhel group — managed by site.yml"]
-    ubuntu["ubuntu group — under adoption"]
+    ubuntu["ubuntu group — managed by site.yml"]
 
     vault -- "vault_rhsm_username, vault_rhsm_password" --> rhel
     lab_facts --> rhel_vars
@@ -72,10 +72,14 @@ in one place and every consumer follows. Roles carry no site-specific
 values. Secrets sit in the group that consumes them: the vault lives in
 `group_vars/rhel/`, visible to the rhel play only.
 
+A host_vars file declares only what makes the host unique. The minimal one
+is a single line — the host's address. The richest one belongs to the
+monitoring host: its dashboards, its own exporter, and the containers that
+consume both.
+
 Both fleets connect under one automation user — the `remote_user` default
-in `ansible.cfg`. Ubuntu hosts answer it only after `bootstrap.yml` has run
-against them; until a host is adopted, it shows up as unreachable in
-full-fleet runs, which is exactly the adoption backlog made visible.
+in `ansible.cfg`. A host answers it after `bootstrap.yml` has run against
+it; until then it shows up as unreachable in full-fleet runs.
 
 ## Roles and execution order
 
@@ -96,12 +100,12 @@ The ubuntu play follows in this order:
 
 1. **ubuntu_ssh_hardening** — key-only SSH via a drop-in named to sort before cloud-init's; completes the transition from socket-activated sshd to the classic service, terminating the leftover socket-spawned listener; config validated before restart, effective policy asserted via `sshd -T`
 2. **ubuntu_apparmor** — asserts AppArmor is active with enforcing profiles
-3. **ubuntu_ufw** — deny-by-default; ssh open, exporter and app ports allowed from the monitor host
+3. **ubuntu_ufw** — deny-by-default; ssh owned by an explicit 22/tcp rule, the distro's OpenSSH profile rule removed; app ports declared per host as port + source pairs, so every rule names its consumer
 4. **ubuntu_chrony** — time sync via chrony, replacing systemd-timesyncd
 5. **ubuntu_updates** — unattended-upgrades removed, updates run through the playbook only; reboot behind an explicit flag, off by default
 6. **ubuntu_packages** — the lab's standard package set
 7. **ubuntu_netplan** — owns the host's netplan configuration; cloud-init network config disabled
-8. **ubuntu_monitoring_agent** — node_exporter as a pinned binary, replacing the packaged exporter
+8. **ubuntu_monitoring_agent** — node_exporter as a pinned binary, replacing the packaged exporter; optional textfile collector directory for hosts that publish their own metrics
 
 The order is designed for the worst moment of interruption: security layers
 run before updates, so a play that dies halfway leaves the host locked down
@@ -167,12 +171,8 @@ ansible-playbook site.yml --limit newhost.example.com
 ## Scope
 
 This is the OS baseline for the lab's hosts — the layer every service stands
-on. The RHEL fleet is fully managed. The Ubuntu fleet is being brought under
-the same discipline by the
-[Ubuntu Baseline project](https://eugeneivanov.dev/projects/ubuntu-baseline-for-the-lab/):
-parallel roles built on Ubuntu's native mechanisms, in this repository, on
-this workflow. Application deployment stays with each service's own
-mechanism.
+on. Both fleets are fully managed. Application deployment stays with each
+service's own mechanism.
 
 This is a homelab, not a reference implementation: the code encodes my lab's
 decisions — addressing, DNS names, package choices — and is published as a
