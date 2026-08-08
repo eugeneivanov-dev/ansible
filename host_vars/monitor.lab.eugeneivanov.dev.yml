@@ -10,3 +10,7 @@ ubuntu_ufw_app_ports:
     from: "192.168.30.0/24"
   - port: "443"
     from: "10.22.22.0/24"
+  # prometheus container scrapes host node_exporter from the compose bridge
+  # (subnet pinned in /opt/monitoring/docker-compose.yml)
+  - port: "9100"
+    from: "172.18.0.0/16"
