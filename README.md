@@ -4,7 +4,7 @@
 
 [![lint](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml/badge.svg)](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml)
 
-Configuration management for my home lab. This repository holds the Ansible
+Configuration management for my lab. This repository holds the Ansible
 baseline for the lab's fleets — the same standard every VM used to get
 by hand, rewritten as idempotent roles. A new VM reaches the lab standard by
 running a playbook; an existing one proves it still matches by running the
@@ -137,7 +137,7 @@ the repository too — its path is provided by the `ANSIBLE_VAULT_PASSWORD_FILE`
 environment variable on each machine.
 
 Ansible Vault here is a deliberate temporary minimum: secrets move to
-HashiCorp Vault when it arrives as its own service later in the roadmap.
+HashiCorp Vault when it arrives as its own service.
 
 ## Git boundary
 
@@ -174,7 +174,7 @@ This is the OS baseline for the lab's hosts — the layer every service stands
 on. Both fleets are fully managed. Application deployment stays with each
 service's own mechanism.
 
-This is a homelab, not a reference implementation: the code encodes my lab's
+This is a personal lab, not a reference implementation: the code encodes my lab's
 decisions — addressing, DNS names, package choices — and is published as a
 working example, not a drop-in solution.
 
