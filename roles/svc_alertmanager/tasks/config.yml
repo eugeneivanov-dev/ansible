@@ -1,0 +1,10 @@
+---
+- name: Deploy alertmanager.yml
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ svc_alertmanager_config_dir }}/alertmanager.yml"
+    owner: root
+    group: alertmanager
+    mode: "0640"
+    validate: "{{ svc_alertmanager_install_dir }}/amtool check-config %s"
+  notify: Restart alertmanager

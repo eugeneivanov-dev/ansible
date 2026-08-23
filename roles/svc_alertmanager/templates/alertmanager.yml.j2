@@ -1,0 +1,59 @@
+{{ ansible_managed | comment }}
+global:
+  smtp_smarthost: {{ vault_alertmanager_smtp_host | to_json }}
+  smtp_from: {{ vault_alertmanager_smtp_from | to_json }}
+  smtp_auth_username: {{ vault_alertmanager_smtp_username | to_json }}
+  smtp_auth_password: {{ vault_alertmanager_smtp_password | to_json }}
+  smtp_require_tls: true
+
+route:
+  receiver: email-default
+  group_by:
+{% for label in svc_alertmanager_group_by %}
+    - {{ label }}
+{% endfor %}
+  group_wait: {{ svc_alertmanager_warning_group_wait }}
+  group_interval: {{ svc_alertmanager_warning_group_interval }}
+  repeat_interval: {{ svc_alertmanager_warning_repeat_interval }}
+  routes:
+    - matchers:
+        - alertname = Watchdog
+      receiver: watchdog
+      group_wait: 0s
+      group_interval: {{ svc_alertmanager_watchdog_repeat_interval }}
+      repeat_interval: {{ svc_alertmanager_watchdog_repeat_interval }}
+    - matchers:
+        - severity = critical
+      receiver: email-critical
+      group_wait: {{ svc_alertmanager_critical_group_wait }}
+      group_interval: {{ svc_alertmanager_critical_group_interval }}
+      repeat_interval: {{ svc_alertmanager_critical_repeat_interval }}
+    - matchers:
+        - severity = warning
+      receiver: email-default
+    - matchers:
+        - severity = info
+      receiver: "null"
+
+receivers:
+  - name: email-default
+    email_configs:
+      - to: {{ vault_alertmanager_email_to | to_json }}
+        send_resolved: true
+  - name: email-critical
+    email_configs:
+      - to: {{ vault_alertmanager_email_to | to_json }}
+        send_resolved: true
+  - name: watchdog
+    webhook_configs:
+      - url: {{ vault_watchdog_ping_url | to_json }}
+        send_resolved: false
+  - name: "null"
+
+inhibit_rules:
+  - source_matchers:
+      - alertname = NodeDown
+    target_matchers:
+      - severity = warning
+    equal:
+      - instance

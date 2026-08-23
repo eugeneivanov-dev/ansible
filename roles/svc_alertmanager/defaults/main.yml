@@ -1,0 +1,33 @@
+---
+# Pinned upstream release. Version and checksum move together:
+# both come from https://prometheus.io/download/ (linux-amd64 tarball).
+# Alertmanager has no LTS channel; the pin is the latest stable release.
+svc_alertmanager_version: "0.34.0"
+svc_alertmanager_checksum: "sha256:19c75a11d8c03dc4ade7abdbddfb3a8f28c9e7b000d0849cda0cd71dffd74a03"
+svc_alertmanager_install_dir: /opt/alertmanager
+svc_alertmanager_config_dir: /etc/alertmanager
+
+# Notification log and silences live on the system disk, not on the
+# TSDB volume: they are small, and the TSDB disk belongs to Prometheus.
+svc_alertmanager_data_dir: /var/lib/alertmanager
+svc_alertmanager_data_retention: 120h
+
+# Local-only listener; Prometheus on the same host is the only client.
+svc_alertmanager_listen_address: 127.0.0.1:9093
+
+# Routing policy by severity. One notification per alert per host;
+# first notification for critical is near-immediate, reminders are paced
+# by operator response time rather than by severity.
+svc_alertmanager_group_by:
+  - alertname
+  - instance
+svc_alertmanager_critical_group_wait: 10s
+svc_alertmanager_critical_group_interval: 1m
+svc_alertmanager_critical_repeat_interval: 4h
+svc_alertmanager_warning_group_wait: 1m
+svc_alertmanager_warning_group_interval: 10m
+svc_alertmanager_warning_repeat_interval: 24h
+
+# Watchdog: the always-firing alert is re-sent to the dead man's switch
+# every repeat_interval; the healthchecks.io check period must match.
+svc_alertmanager_watchdog_repeat_interval: 5m

@@ -1,0 +1,16 @@
+---
+- name: Create Alertmanager config directory
+  ansible.builtin.file:
+    path: "{{ svc_alertmanager_config_dir }}"
+    state: directory
+    owner: root
+    group: alertmanager
+    mode: "0750"
+
+- name: Create Alertmanager data directory
+  ansible.builtin.file:
+    path: "{{ svc_alertmanager_data_dir }}"
+    state: directory
+    owner: alertmanager
+    group: alertmanager
+    mode: "0750"

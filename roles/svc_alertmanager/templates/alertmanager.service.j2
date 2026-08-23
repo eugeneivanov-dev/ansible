@@ -1,0 +1,33 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=Alertmanager for Prometheus
+Documentation=https://prometheus.io/docs/alerting/latest/alertmanager/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=alertmanager
+Group=alertmanager
+ExecStart={{ svc_alertmanager_install_dir }}/alertmanager \
+    --config.file={{ svc_alertmanager_config_dir }}/alertmanager.yml \
+    --storage.path={{ svc_alertmanager_data_dir }} \
+    --data.retention={{ svc_alertmanager_data_retention }} \
+    --web.listen-address={{ svc_alertmanager_listen_address }} \
+    --cluster.listen-address=""
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ svc_alertmanager_data_dir }}
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

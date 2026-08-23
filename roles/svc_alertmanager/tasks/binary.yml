@@ -1,0 +1,27 @@
+---
+- name: Download Alertmanager release tarball
+  ansible.builtin.get_url:
+    url: >-
+      https://github.com/prometheus/alertmanager/releases/download/v{{ svc_alertmanager_version
+      }}/alertmanager-{{ svc_alertmanager_version }}.linux-amd64.tar.gz
+    dest: "/opt/alertmanager-{{ svc_alertmanager_version }}.linux-amd64.tar.gz"
+    checksum: "{{ svc_alertmanager_checksum }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unpack Alertmanager release
+  ansible.builtin.unarchive:
+    src: "/opt/alertmanager-{{ svc_alertmanager_version }}.linux-amd64.tar.gz"
+    dest: /opt
+    remote_src: true
+    creates: "/opt/alertmanager-{{ svc_alertmanager_version }}.linux-amd64/alertmanager"
+    owner: root
+    group: root
+
+- name: Link current Alertmanager release
+  ansible.builtin.file:
+    src: "/opt/alertmanager-{{ svc_alertmanager_version }}.linux-amd64"
+    dest: "{{ svc_alertmanager_install_dir }}"
+    state: link
+  notify: Restart alertmanager

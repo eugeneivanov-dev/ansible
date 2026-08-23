@@ -1,0 +1,14 @@
+---
+- name: Create alertmanager system group
+  ansible.builtin.group:
+    name: alertmanager
+    system: true
+
+- name: Create alertmanager system user
+  ansible.builtin.user:
+    name: alertmanager
+    group: alertmanager
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ svc_alertmanager_data_dir }}"
+    create_home: false
