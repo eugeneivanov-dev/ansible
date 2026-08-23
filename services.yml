@@ -1,0 +1,8 @@
+---
+# Services layer — infrastructure services on top of the OS baseline (site.yml).
+# Roles arrive per phase: svc_prometheus, svc_alertmanager, svc_grafana.
+
+- name: Monitoring stack
+  hosts: monitoring
+  become: true
+  roles: []

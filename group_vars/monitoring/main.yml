@@ -1,0 +1,6 @@
+---
+# Monitoring services group — svc_prometheus / svc_alertmanager / svc_grafana.
+# Values arrive here as the roles are built (phase 1+).
+
+# TSDB data disk (scsi1) mount point
+monitoring_tsdb_mount: /var/lib/prometheus
