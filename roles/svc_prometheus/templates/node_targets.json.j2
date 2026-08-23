@@ -1,0 +1,13 @@
+[
+{% for fleet in ['rhel', 'ubuntu'] %}
+{% for host in groups[fleet] | sort %}
+  {
+    "targets": ["{{ host }}:9100"],
+    "labels": {
+      "fleet": "{{ fleet }}"
+    }
+  }{% if not (loop.last and fleet == 'ubuntu') %},{% endif %}
+
+{% endfor %}
+{% endfor %}
+]

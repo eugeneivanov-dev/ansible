@@ -8,3 +8,11 @@
     mode: "0640"
     validate: "{{ svc_prometheus_install_dir }}/promtool check config %s"
   notify: Restart prometheus
+
+- name: Deploy node fleet targets
+  ansible.builtin.template:
+    src: node_targets.json.j2
+    dest: "{{ svc_prometheus_config_dir }}/targets/node_fleet.json"
+    owner: root
+    group: prometheus
+    mode: "0640"
