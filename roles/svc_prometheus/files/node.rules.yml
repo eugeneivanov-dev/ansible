@@ -1,0 +1,44 @@
+---
+groups:
+  - name: node
+    rules:
+      - alert: NodeDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node exporter target {{ $labels.instance }} is down"
+          description: >-
+            Prometheus has not scraped {{ $labels.instance }}
+            (fleet {{ $labels.fleet }}) successfully for 2 minutes.
+
+      - alert: NodeFilesystemFillingUp
+        expr: >-
+          predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|ramfs"}[6h], 24 * 3600)
+          < 0
+          and
+          node_filesystem_avail_bytes{fstype!~"tmpfs|ramfs"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|ramfs"} < 0.25
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }} filling up"
+          description: >-
+            At the current 6h growth rate, {{ $labels.mountpoint }} on
+            {{ $labels.instance }} is predicted to run out of space
+            within 24 hours.
+
+      - alert: NodeFilesystemAlmostFull
+        expr: >-
+          node_filesystem_avail_bytes{fstype!~"tmpfs|ramfs"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|ramfs"} < 0.05
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }} almost full"
+          description: >-
+            Less than 5% space left on {{ $labels.mountpoint }}
+            at {{ $labels.instance }}.

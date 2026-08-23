@@ -9,6 +9,7 @@
   loop:
     - "{{ svc_prometheus_config_dir }}"
     - "{{ svc_prometheus_config_dir }}/targets"
+    - "{{ svc_prometheus_config_dir }}/rules"
 
 - name: Own the TSDB mount point
   ansible.builtin.file:
