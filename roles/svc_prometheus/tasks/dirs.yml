@@ -1,0 +1,19 @@
+---
+- name: Create Prometheus config directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: prometheus
+    mode: "0750"
+  loop:
+    - "{{ svc_prometheus_config_dir }}"
+    - "{{ svc_prometheus_config_dir }}/targets"
+
+- name: Own the TSDB mount point
+  ansible.builtin.file:
+    path: "{{ svc_prometheus_tsdb_mount }}"
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: "0750"

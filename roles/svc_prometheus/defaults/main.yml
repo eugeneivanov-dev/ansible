@@ -6,3 +6,10 @@ svc_prometheus_tsdb_vg: vg_prometheus
 svc_prometheus_tsdb_lv: lv_tsdb
 svc_prometheus_tsdb_fstype: xfs
 svc_prometheus_tsdb_mount: /var/lib/prometheus
+
+# Pinned upstream release. Version and checksum move together:
+# both come from https://prometheus.io/download/ (linux-amd64 tarball).
+svc_prometheus_version: "3.13.2"
+svc_prometheus_checksum: "sha256:0e8c4d46101bd025ea8265e377d2caabc57f488fc1be1c367f37db69ea41be6f"
+svc_prometheus_install_dir: /opt/prometheus
+svc_prometheus_config_dir: /etc/prometheus

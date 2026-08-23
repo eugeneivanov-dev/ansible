@@ -1,0 +1,25 @@
+---
+- name: Download Prometheus release tarball
+  ansible.builtin.get_url:
+    url: "https://github.com/prometheus/prometheus/releases/download/v{{ svc_prometheus_version }}/prometheus-{{ svc_prometheus_version }}.linux-amd64.tar.gz"
+    dest: "/opt/prometheus-{{ svc_prometheus_version }}.linux-amd64.tar.gz"
+    checksum: "{{ svc_prometheus_checksum }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unpack Prometheus release
+  ansible.builtin.unarchive:
+    src: "/opt/prometheus-{{ svc_prometheus_version }}.linux-amd64.tar.gz"
+    dest: /opt
+    remote_src: true
+    creates: "/opt/prometheus-{{ svc_prometheus_version }}.linux-amd64/prometheus"
+    owner: root
+    group: root
+
+- name: Link current Prometheus release
+  ansible.builtin.file:
+    src: "/opt/prometheus-{{ svc_prometheus_version }}.linux-amd64"
+    dest: "{{ svc_prometheus_install_dir }}"
+    state: link
+  notify: Restart prometheus

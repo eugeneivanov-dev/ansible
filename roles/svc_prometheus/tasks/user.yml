@@ -1,0 +1,14 @@
+---
+- name: Create prometheus system group
+  ansible.builtin.group:
+    name: prometheus
+    system: true
+
+- name: Create prometheus system user
+  ansible.builtin.user:
+    name: prometheus
+    group: prometheus
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ svc_prometheus_tsdb_mount }}"
+    create_home: false
