@@ -13,3 +13,8 @@ svc_prometheus_version: "3.13.2"
 svc_prometheus_checksum: "sha256:0e8c4d46101bd025ea8265e377d2caabc57f488fc1be1c367f37db69ea41be6f"
 svc_prometheus_install_dir: /opt/prometheus
 svc_prometheus_config_dir: /etc/prometheus
+
+# Retention: time is the working limit, size is a safety fuse sized
+# below the 50G TSDB volume to leave air for WAL and compaction.
+svc_prometheus_retention_time: 90d
+svc_prometheus_retention_size: 40GB

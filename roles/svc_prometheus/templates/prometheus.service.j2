@@ -1,0 +1,33 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=Prometheus time series database
+Documentation=https://prometheus.io/docs/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+ExecStart={{ svc_prometheus_install_dir }}/prometheus \
+    --config.file={{ svc_prometheus_config_dir }}/prometheus.yml \
+    --storage.tsdb.path={{ svc_prometheus_tsdb_mount }} \
+    --storage.tsdb.retention.time={{ svc_prometheus_retention_time }} \
+    --storage.tsdb.retention.size={{ svc_prometheus_retention_size }} \
+    --web.listen-address=127.0.0.1:9090
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ svc_prometheus_tsdb_mount }}
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

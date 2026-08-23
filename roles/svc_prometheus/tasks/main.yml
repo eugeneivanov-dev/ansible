@@ -10,3 +10,9 @@
 
 - name: Pinned binary installation
   ansible.builtin.import_tasks: binary.yml
+
+- name: Prometheus configuration
+  ansible.builtin.import_tasks: config.yml
+
+- name: Systemd service
+  ansible.builtin.import_tasks: service.yml
