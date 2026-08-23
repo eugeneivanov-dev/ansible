@@ -10,6 +10,7 @@
   loop:
     - node.rules.yml
     - prometheus.rules.yml
+    - watchdog.rules.yml
   notify: Restart prometheus
 
 - name: Deploy prometheus.yml

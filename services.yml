@@ -7,3 +7,4 @@
   become: true
   roles:
     - svc_prometheus
+    - svc_alertmanager

@@ -1,0 +1,14 @@
+---
+groups:
+  - name: watchdog
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels:
+          severity: none
+        annotations:
+          summary: "Alerting pipeline heartbeat"
+          description: >-
+            This alert is always firing. It is routed to the dead man's
+            switch (healthchecks.io), which reports the monitoring stack
+            as down when the heartbeat stops arriving.
