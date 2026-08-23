@@ -4,12 +4,7 @@
 
 [![lint](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml/badge.svg)](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml)
 
-Configuration management for my lab. This repository holds the Ansible
-baseline for the lab's fleets — the same standard every VM used to get
-by hand, rewritten as idempotent roles. A new VM reaches the lab standard by
-running a playbook; an existing one proves it still matches by running the
-same playbook in check mode. Both fleets — RHEL and Ubuntu — are fully
-managed from here.
+Configuration management for the infrastructure lab behind [eugeneivanov.dev](https://eugeneivanov.dev). This repository holds the Ansible baseline for the lab's fleets — the same standard every VM used to get by hand, rewritten as idempotent roles. A new VM reaches the lab standard by running a playbook; an existing one proves it still matches by running the same playbook in check mode. Both fleets — RHEL and Ubuntu — are fully managed from here.
 
 Project pages:  
 [Ansible Baseline for the Lab](https://eugeneivanov.dev/projects/ansible-baseline-for-the-lab/)  
@@ -28,10 +23,12 @@ Project pages:
 ansible.cfg               defaults: inventory path, remote user
 bootstrap.yml             one-time play: creates the automation user on new hosts (both fleets)
 site.yml                  two plays: rhel baseline (nine roles), ubuntu baseline (eight roles)
-inventory/hosts.yml       two flat groups: rhel, ubuntu — both managed
+services.yml              services layer on top of the baseline — starting with the monitoring stack (in progress)
+inventory/hosts.yml       three groups: rhel, ubuntu — the managed fleets; monitoring — the services-layer host
 group_vars/all/           main.yml — lab facts (resolvers, search domain, gateway, monitor address, node_exporter pin)
 group_vars/rhel/          rhel role inputs, referencing the lab facts; vault.yml.example — template for the encrypted vault
 group_vars/ubuntu/        ubuntu role inputs, referencing the lab facts
+group_vars/monitoring/    monitoring services inputs; vault.yml.example — template for the services vault
 host_vars/                per-host values: netplan address, app ports as port + source pairs
 roles/                    fleet-prefixed baseline roles (rhel_*, ubuntu_*), one topic each
 ```
@@ -65,26 +62,15 @@ flowchart TB
     host_vars --> ubuntu
 ```
 
-Lab facts — values that belong to the lab itself, not to any fleet — live
-once in `group_vars/all/main.yml`. Fleet role inputs reference them
-(`rhel_dns_resolver_servers: "{{ lab_dns_servers }}"`), so a value changes
-in one place and every consumer follows. Roles carry no site-specific
-values. Secrets sit in the group that consumes them: the vault lives in
-`group_vars/rhel/`, visible to the rhel play only.
+Lab facts — values that belong to the lab itself, not to any fleet — live once in `group_vars/all/main.yml`. Fleet role inputs reference them (`rhel_dns_resolver_servers: "{{ lab_dns_servers }}"`), so a value changes in one place and every consumer follows. Roles carry no site-specific values. Secrets sit in the group that consumes them: the baseline vault lives in `group_vars/rhel/`, visible to the rhel play only, and the services layer follows the same rule with its own vault in `group_vars/monitoring/`.
 
-A host_vars file declares only what makes the host unique. The minimal one
-is a single line — the host's address. The richest one belongs to the
-monitoring host: its dashboards, its own exporter, and the containers that
-consume both.
+A host_vars file declares only what makes the host unique. The minimal one is a single line — the host's address. The richest one belongs to the monitoring host: its dashboards, its own exporter, and the containers that consume both.
 
-Both fleets connect under one automation user — the `remote_user` default
-in `ansible.cfg`. A host answers it after `bootstrap.yml` has run against
-it; until then it shows up as unreachable in full-fleet runs.
+Both fleets connect under one automation user — the `remote_user` default in `ansible.cfg`. A host answers it after `bootstrap.yml` has run against it; until then it shows up as unreachable in full-fleet runs.
 
 ## Roles and execution order
 
-Role names and tags carry the fleet prefix: `rhel_*` and `ubuntu_*`.
-`site.yml` runs the rhel play in this order:
+Role names and tags carry the fleet prefix: `rhel_*` and `ubuntu_*`. `site.yml` runs the rhel play in this order:
 
 1. **rhel_registration** — subscription-manager with credentials from vault
 2. **rhel_ssh_hardening** — key-only SSH, config validated before restart, effective policy asserted via `sshd -T`
@@ -107,42 +93,28 @@ The ubuntu play follows in this order:
 7. **ubuntu_netplan** — owns the host's netplan configuration; cloud-init network config disabled
 8. **ubuntu_monitoring_agent** — node_exporter as a pinned binary, replacing the packaged exporter; optional textfile collector directory for hosts that publish their own metrics
 
-The order is designed for the worst moment of interruption: security layers
-run before updates, so a play that dies halfway leaves the host locked down
-and unpatched rather than patched and open. Both plays follow the same
-principle.
+The order is designed for the worst moment of interruption: security layers run before updates, so a play that dies halfway leaves the host locked down and unpatched rather than patched and open. Both plays follow the same principle.
 
 ## Package baseline
 
-The standard set both `*_packages` roles install — general-purpose tools
-every host carries regardless of its service:
+The standard set both `*_packages` roles install — general-purpose tools every host carries regardless of its service:
 
 | Fleet  | Packages |
 |--------|----------|
 | rhel   | vim, bash-completion, tar, policycoreutils-python-utils, bind-utils, openssl |
 | ubuntu | vim, bash-completion, tar, bind9-dnsutils, openssl, qemu-guest-agent |
 
-The sets differ where the platforms do: SELinux tooling exists only on RHEL,
-`bind-utils` is named `bind9-dnsutils` on Ubuntu, and `qemu-guest-agent`
-ships preinstalled on the RHEL template but not in the Ubuntu installer.
-Changing a set means changing the role and this table in the same commit.
+The sets differ where the platforms do: SELinux tooling exists only on RHEL, `bind-utils` is named `bind9-dnsutils` on Ubuntu, and `qemu-guest-agent` ships preinstalled on the RHEL template but not in the Ubuntu installer. Changing a set means changing the role and this table in the same commit.
 
 ## Secrets
 
-The encrypted vault file never enters git. The repository carries
-`group_vars/rhel/vault.yml.example` with every expected key; the real
-`group_vars/rhel/vault.yml` is created from it, encrypted with Ansible Vault,
-and stays on the machines that run plays. The vault passphrase lives outside
-the repository too — its path is provided by the `ANSIBLE_VAULT_PASSWORD_FILE`
-environment variable on each machine.
+The encrypted vault files never enter git. The repository carries a `vault.yml.example` with every expected key next to each real vault's location — `group_vars/rhel/` for the baseline, `group_vars/monitoring/` for the services layer; the real `vault.yml` is created from the template, encrypted with Ansible Vault, and stays on the machines that run plays. The vault passphrase lives outside the repository too — its path is provided by the `ANSIBLE_VAULT_PASSWORD_FILE` environment variable on each machine.
 
-Ansible Vault here is a deliberate temporary minimum: secrets move to
-HashiCorp Vault when it arrives as its own service.
+Ansible Vault here is a deliberate temporary minimum: secrets move to HashiCorp Vault when it arrives as its own service.
 
 ## Git boundary
 
-Development happens on the workstation; execution happens on a dedicated
-control VM in the lab.
+Development happens on the workstation; execution happens on a dedicated control VM in the lab.
 
 - workstation: edit, commit, push (read-write key)
 - control VM: pull only (read-only deploy key), run plays from the working copy
@@ -170,30 +142,21 @@ ansible-playbook site.yml --limit newhost.example.com
 
 ## Scope
 
-This is the OS baseline for the lab's hosts — the layer every service stands
-on. Both fleets are fully managed. Application deployment stays with each
-service's own mechanism.
+This is the OS baseline for the lab's hosts — the layer every service stands on. Both fleets are fully managed. Application deployment stays with each service's own mechanism.
 
-This is a personal lab, not a reference implementation: the code encodes my lab's
-decisions — addressing, DNS names, package choices — and is published as a
-working example, not a drop-in solution.
+A services layer is in progress on top of the baseline: `services.yml` with `svc_*` roles, starting with the monitoring stack — Prometheus, Alertmanager, and Grafana as native systemd services on RHEL.
+
+The lab is the proving ground behind [Proven Infrastructure Group](https://proveninfra.com): methods are rehearsed here before they reach client production. The code encodes the lab's decisions — addressing, DNS names, package choices — and is published as a working example, not a drop-in solution.
 
 ## CI
 
-Every push runs yamllint and ansible-lint (production profile) with pinned
-versions — the same commands and versions used locally.
+Every push runs yamllint and ansible-lint (production profile) with pinned versions — the same commands and versions used locally.
 
 ## History
 
-This code was developed in a private repository from day one of the lab's
-Ansible project. The public repository starts with a clean history: the
-private one carries encrypted secrets and early lab-specific details that
-have no place in public git history, even encrypted.
+This code was developed in a private repository from day one of the lab's Ansible project. The public repository starts with a clean history: the private one carries encrypted secrets and early lab-specific details that have no place in public git history, even encrypted.
 
-The reasoning behind the transition is written up in
-[Going Public: the Decisions Behind Opening My Ansible Repo](https://eugeneivanov.dev/journal/labnotes/going-public-ansible-repo-decisions/),
-and the mechanics in
-[Going Public: the Ansible Repo Transition, Step by Step](https://eugeneivanov.dev/journal/labnotes/going-public-ansible-repo-transition/).
+The reasoning behind the transition is written up in [Going Public: the Decisions Behind Opening My Ansible Repo](https://eugeneivanov.dev/journal/labnotes/going-public-ansible-repo-decisions/), and the mechanics in [Going Public: the Ansible Repo Transition, Step by Step](https://eugeneivanov.dev/journal/labnotes/going-public-ansible-repo-transition/).
 
 ## License
 
