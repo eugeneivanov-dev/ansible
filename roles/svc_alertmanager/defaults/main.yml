@@ -29,5 +29,10 @@ svc_alertmanager_warning_group_interval: 10m
 svc_alertmanager_warning_repeat_interval: 24h
 
 # Watchdog: the always-firing alert is re-sent to the dead man's switch
-# every repeat_interval; the healthchecks.io check period must match.
-svc_alertmanager_watchdog_repeat_interval: 5m
+# on the first group tick after repeat_interval has elapsed. A group tick
+# that lands exactly on repeat_interval is skipped (the last-sent timestamp
+# is written after the send), so repeat_interval is set one tick below the
+# intended cadence: 4m + 1m tick = a ping every 5m, matching the
+# healthchecks.io period of 5m (grace 10m).
+svc_alertmanager_watchdog_group_interval: 1m
+svc_alertmanager_watchdog_repeat_interval: 4m

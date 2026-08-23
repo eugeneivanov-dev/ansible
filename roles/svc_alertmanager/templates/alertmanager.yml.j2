@@ -20,7 +20,7 @@ route:
         - alertname = Watchdog
       receiver: watchdog
       group_wait: 0s
-      group_interval: {{ svc_alertmanager_watchdog_repeat_interval }}
+      group_interval: {{ svc_alertmanager_watchdog_group_interval }}
       repeat_interval: {{ svc_alertmanager_watchdog_repeat_interval }}
     - matchers:
         - severity = critical
