@@ -5,4 +5,5 @@
 - name: Monitoring stack
   hosts: monitoring
   become: true
-  roles: []
+  roles:
+    - svc_prometheus

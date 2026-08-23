@@ -1,0 +1,58 @@
+---
+- name: Assert TSDB device is declared for this host
+  ansible.builtin.assert:
+    that:
+      - svc_prometheus_tsdb_device is defined
+    fail_msg: >-
+      svc_prometheus_tsdb_device is not set. Declare the TSDB block device
+      in host_vars for this host; the role never guesses block devices.
+
+- name: Check whether the volume group already exists
+  ansible.builtin.command:
+    cmd: vgs --noheadings -o vg_name {{ svc_prometheus_tsdb_vg }}
+  register: svc_prometheus_vg_check
+  changed_when: false
+  failed_when: false
+
+- name: Read existing signatures on the TSDB device
+  ansible.builtin.command:
+    cmd: blkid -p {{ svc_prometheus_tsdb_device }}
+  register: svc_prometheus_blkid
+  changed_when: false
+  failed_when: false
+  when: svc_prometheus_vg_check.rc != 0
+
+- name: Refuse to touch a device that already carries a signature
+  ansible.builtin.assert:
+    that:
+      - svc_prometheus_blkid.rc != 0
+    fail_msg: >-
+      {{ svc_prometheus_tsdb_device }} already carries a filesystem or
+      partition signature and volume group {{ svc_prometheus_tsdb_vg }}
+      does not exist. Refusing to touch it: wipe the device manually
+      if it is really meant for the TSDB.
+  when: svc_prometheus_vg_check.rc != 0
+
+- name: Create volume group on the TSDB device
+  community.general.lvg:
+    vg: "{{ svc_prometheus_tsdb_vg }}"
+    pvs: "{{ svc_prometheus_tsdb_device }}"
+
+- name: Create logical volume for the TSDB
+  community.general.lvol:
+    vg: "{{ svc_prometheus_tsdb_vg }}"
+    lv: "{{ svc_prometheus_tsdb_lv }}"
+    size: 100%VG
+
+- name: Create filesystem on the TSDB logical volume
+  community.general.filesystem:
+    fstype: "{{ svc_prometheus_tsdb_fstype }}"
+    dev: "/dev/{{ svc_prometheus_tsdb_vg }}/{{ svc_prometheus_tsdb_lv }}"
+
+- name: Mount the TSDB filesystem
+  ansible.posix.mount:
+    path: "{{ svc_prometheus_tsdb_mount }}"
+    src: "/dev/{{ svc_prometheus_tsdb_vg }}/{{ svc_prometheus_tsdb_lv }}"
+    fstype: "{{ svc_prometheus_tsdb_fstype }}"
+    opts: defaults
+    state: mounted

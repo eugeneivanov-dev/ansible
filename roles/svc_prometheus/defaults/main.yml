@@ -1,0 +1,8 @@
+---
+# TSDB disk layout. The block device itself is deliberately NOT defaulted:
+# it must be declared per host in host_vars (svc_prometheus_tsdb_device),
+# and the role refuses to touch a device that already carries a signature.
+svc_prometheus_tsdb_vg: vg_prometheus
+svc_prometheus_tsdb_lv: lv_tsdb
+svc_prometheus_tsdb_fstype: xfs
+svc_prometheus_tsdb_mount: /var/lib/prometheus
