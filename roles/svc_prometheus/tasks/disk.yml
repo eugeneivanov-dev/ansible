@@ -56,3 +56,9 @@
     fstype: "{{ svc_prometheus_tsdb_fstype }}"
     opts: defaults
     state: mounted
+
+- name: Restore SELinux context on the TSDB mount
+  ansible.builtin.command:
+    cmd: restorecon -R {{ svc_prometheus_tsdb_mount }}
+  register: svc_prometheus_restorecon
+  changed_when: false
