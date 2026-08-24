@@ -47,6 +47,14 @@
     immediate: true
     state: enabled
 
+- name: Allow Grafana from trusted networks
+  ansible.posix.firewalld:
+    rich_rule: 'rule family="ipv4" source address="{{ item }}" port port="3000" protocol="tcp" accept'
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ lab_trusted_networks }}"
+
 - name: Download acme.sh release tarball
   ansible.builtin.get_url:
     url: "https://github.com/acmesh-official/acme.sh/archive/refs/tags/{{ svc_grafana_acme_version }}.tar.gz"

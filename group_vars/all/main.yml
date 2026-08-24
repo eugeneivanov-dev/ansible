@@ -11,3 +11,7 @@ lab_node_exporter_archive: "node_exporter-{{ lab_node_exporter_version }}.linux-
 lab_ca_ip: "192.168.10.4"
 lab_ca_acme_directory: "https://ca.lab.eugeneivanov.dev/acme/acme/directory"
 lab_ca_roots_url: "https://ca.lab.eugeneivanov.dev/roots.pem"
+lab_trusted_networks:
+  - "192.168.10.0/24"
+  - "192.168.30.0/24"
+  - "10.22.22.0/24"
