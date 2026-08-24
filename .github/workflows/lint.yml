@@ -25,3 +25,52 @@ jobs:
 
       - name: Run ansible-lint
         run: ansible-lint --profile production
+
+  monitoring-config:
+    runs-on: ubuntu-latest
+    env:
+      PROMETHEUS_VERSION: 3.13.2
+      ALERTMANAGER_VERSION: 0.34.0
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install ansible-core
+        run: pip install ansible-core==2.21.3
+
+      - name: Download promtool (Prometheus)
+        run: |
+          TARBALL="prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz"
+          BASE="https://github.com/prometheus/prometheus/releases/download"
+          curl -sSLO "${BASE}/v${PROMETHEUS_VERSION}/${TARBALL}"
+          curl -sSLO "${BASE}/v${PROMETHEUS_VERSION}/sha256sums.txt"
+          grep "${TARBALL}" sha256sums.txt | sha256sum -c -
+          tar -xzf "${TARBALL}"
+          sudo install "prometheus-${PROMETHEUS_VERSION}.linux-amd64/promtool" /usr/local/bin/promtool
+
+      - name: Download amtool (Alertmanager)
+        run: |
+          TARBALL="alertmanager-${ALERTMANAGER_VERSION}.linux-amd64.tar.gz"
+          BASE="https://github.com/prometheus/alertmanager/releases/download"
+          curl -sSLO "${BASE}/v${ALERTMANAGER_VERSION}/${TARBALL}"
+          curl -sSLO "${BASE}/v${ALERTMANAGER_VERSION}/sha256sums.txt"
+          grep "${TARBALL}" sha256sums.txt | sha256sum -c -
+          tar -xzf "${TARBALL}"
+          sudo install "alertmanager-${ALERTMANAGER_VERSION}.linux-amd64/amtool" /usr/local/bin/amtool
+
+      - name: Check alert rules
+        run: promtool check rules roles/svc_prometheus/files/*.rules.yml
+
+      - name: Render monitoring config templates
+        run: ansible-playbook tests/render.yml
+
+      - name: Check rendered prometheus.yml
+        run: promtool check config --syntax-only /tmp/rendered/prometheus.yml
+
+      - name: Check rendered alertmanager.yml
+        run: amtool check-config /tmp/rendered/alertmanager.yml

@@ -1,0 +1,11 @@
+---
+# Fixture values for CI template rendering (tests/render.yml).
+# Fake credentials only — never real secrets. Keys mirror
+# group_vars/monitoring/vault.yml.example.
+
+vault_alertmanager_smtp_host: smtp.example.com:587
+vault_alertmanager_smtp_from: alerts@example.com
+vault_alertmanager_smtp_username: alerts@example.com
+vault_alertmanager_smtp_password: changeme
+vault_alertmanager_email_to: you@example.com
+vault_watchdog_ping_url: https://hc-ping.com/00000000-0000-0000-0000-000000000000

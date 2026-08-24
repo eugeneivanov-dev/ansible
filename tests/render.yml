@@ -1,0 +1,33 @@
+---
+# CI render check: render the monitoring config templates with role
+# defaults plus fixture vault values (tests/render-vars.yml), so that
+# promtool / amtool can validate the results. Run from the repo root:
+#   ansible-playbook tests/render.yml
+# Output: /tmp/rendered/prometheus.yml, /tmp/rendered/alertmanager.yml
+
+- name: Render monitoring config templates
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ../roles/svc_prometheus/defaults/main.yml
+    - ../roles/svc_alertmanager/defaults/main.yml
+    - render-vars.yml
+  tasks:
+    - name: Create output directory
+      ansible.builtin.file:
+        path: /tmp/rendered
+        state: directory
+        mode: "0755"
+
+    - name: Render prometheus.yml
+      ansible.builtin.template:
+        src: ../roles/svc_prometheus/templates/prometheus.yml.j2
+        dest: /tmp/rendered/prometheus.yml
+        mode: "0644"
+
+    - name: Render alertmanager.yml
+      ansible.builtin.template:
+        src: ../roles/svc_alertmanager/templates/alertmanager.yml.j2
+        dest: /tmp/rendered/alertmanager.yml
+        mode: "0644"
