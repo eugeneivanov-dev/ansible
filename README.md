@@ -150,7 +150,7 @@ The lab is the proving ground behind [Proven Infrastructure Group](https://prove
 
 ## CI
 
-Every push runs yamllint and ansible-lint (production profile) with pinned versions — the same commands and versions used locally.
+Every push runs yamllint and ansible-lint (production profile) with pinned versions — the same commands and versions used locally. A second job validates the monitoring configs: alert rules are checked directly with promtool, and the Prometheus and Alertmanager templates are rendered with fixture values (`tests/`), then checked with promtool and amtool — the same pinned versions the stack runs.
 
 ## History
 
