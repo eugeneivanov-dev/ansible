@@ -138,6 +138,32 @@
     state: started
     daemon_reload: true
 
+- name: Create dashboards directory
+  ansible.builtin.file:
+    path: /var/lib/grafana/dashboards
+    state: directory
+    owner: root
+    group: grafana
+    mode: "0750"
+
+- name: Provision the Prometheus datasource
+  ansible.builtin.copy:
+    src: provisioning-datasource.yml
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Provision the dashboards provider
+  ansible.builtin.copy:
+    src: provisioning-dashboards.yml
+    dest: /etc/grafana/provisioning/dashboards/lab.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
 - name: Deploy grafana.ini (admin password applies on first start only)
   ansible.builtin.template:
     src: grafana.ini.j2
