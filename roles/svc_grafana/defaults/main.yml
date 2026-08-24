@@ -1,3 +1,13 @@
 ---
 # svc_grafana — Grafana OSS from the vendor repository, pinned version.
 svc_grafana_version: "13.1.4"
+
+# TLS certificate from the lab CA (step-ca, ACME).
+svc_grafana_cert_dir: /etc/grafana/certs
+svc_grafana_cert_file: "{{ svc_grafana_cert_dir }}/fullchain.pem"
+svc_grafana_key_file: "{{ svc_grafana_cert_dir }}/key.pem"
+
+# acme.sh client (runs as root, systemd timer drives renewal).
+svc_grafana_acme_home: /root/.acme.sh
+svc_grafana_acme_version: "3.1.1"
+svc_grafana_acme_days: 5

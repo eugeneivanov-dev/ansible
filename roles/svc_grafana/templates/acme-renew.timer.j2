@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily acme.sh renewal pass
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

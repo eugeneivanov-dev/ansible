@@ -20,6 +20,116 @@
     disable_excludes: grafana
   notify: Restart grafana
 
+- name: Install TLS contour packages
+  ansible.builtin.dnf:
+    name:
+      - socat
+      - tar
+    state: present
+
+- name: Trust the lab root CA
+  ansible.builtin.get_url:
+    url: "{{ lab_ca_roots_url }}"
+    dest: /etc/pki/ca-trust/source/anchors/lab-root-ca.crt
+    owner: root
+    group: root
+    mode: "0644"
+    validate_certs: false  # trust bootstrap: the CA serves its own chain
+  notify: Update ca trust
+
+- name: Apply pending trust update before ACME talks to the CA
+  ansible.builtin.meta: flush_handlers
+
+- name: Allow ACME HTTP-01 from the CA only
+  ansible.posix.firewalld:
+    rich_rule: 'rule family="ipv4" source address="{{ lab_ca_ip }}" port port="80" protocol="tcp" accept'
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Download acme.sh release tarball
+  ansible.builtin.get_url:
+    url: "https://github.com/acmesh-official/acme.sh/archive/refs/tags/{{ svc_grafana_acme_version }}.tar.gz"
+    dest: "/root/acme.sh-{{ svc_grafana_acme_version }}.tar.gz"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unpack acme.sh release
+  ansible.builtin.unarchive:
+    src: "/root/acme.sh-{{ svc_grafana_acme_version }}.tar.gz"
+    dest: /root
+    remote_src: true
+    creates: "/root/acme.sh-{{ svc_grafana_acme_version }}/acme.sh"
+
+- name: Install acme.sh (no cron — renewal runs from a systemd timer)
+  ansible.builtin.command:
+    cmd: ./acme.sh --install --nocron --home {{ svc_grafana_acme_home }}
+    chdir: "/root/acme.sh-{{ svc_grafana_acme_version }}"
+    creates: "{{ svc_grafana_acme_home }}/acme.sh"
+
+- name: Issue the certificate (standalone HTTP-01 against the lab CA)
+  ansible.builtin.command:
+    cmd: >
+      {{ svc_grafana_acme_home }}/acme.sh --issue --standalone
+      -d {{ inventory_hostname }}
+      --server {{ lab_ca_acme_directory }}
+      --days {{ svc_grafana_acme_days }}
+      --home {{ svc_grafana_acme_home }}
+    creates: "{{ svc_grafana_acme_home }}/{{ inventory_hostname }}_ecc/fullchain.cer"
+
+- name: Create Grafana certificate directory
+  ansible.builtin.file:
+    path: "{{ svc_grafana_cert_dir }}"
+    state: directory
+    owner: root
+    group: grafana
+    mode: "0750"
+
+- name: Install the certificate for Grafana with a renewal reload command
+  ansible.builtin.command:
+    cmd: >
+      {{ svc_grafana_acme_home }}/acme.sh --install-cert
+      -d {{ inventory_hostname }} --ecc
+      --key-file {{ svc_grafana_key_file }}
+      --fullchain-file {{ svc_grafana_cert_file }}
+      --reloadcmd "systemctl restart grafana-server"
+      --home {{ svc_grafana_acme_home }}
+    creates: "{{ svc_grafana_key_file }}"
+
+- name: Enforce certificate file ownership and modes
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: root
+    group: grafana
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ svc_grafana_cert_file }}", mode: "0644" }
+    - { path: "{{ svc_grafana_key_file }}", mode: "0640" }
+
+- name: Deploy acme renewal service unit
+  ansible.builtin.template:
+    src: acme-renew.service.j2
+    dest: /etc/systemd/system/acme-renew.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy acme renewal timer
+  ansible.builtin.template:
+    src: acme-renew.timer.j2
+    dest: /etc/systemd/system/acme-renew.timer
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable and start the renewal timer
+  ansible.builtin.systemd_service:
+    name: acme-renew.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
 - name: Enable and start grafana-server
   ansible.builtin.systemd_service:
     name: grafana-server

@@ -1,0 +1,8 @@
+[Unit]
+Description=acme.sh renewal pass (step-ca certificates)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart={{ svc_grafana_acme_home }}/acme.sh --cron --home {{ svc_grafana_acme_home }}
