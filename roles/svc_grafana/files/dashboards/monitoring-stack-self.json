@@ -1,0 +1,204 @@
+{
+  "uid": "monitoring-stack-self",
+  "title": "Monitoring Stack — Self-Monitoring",
+  "tags": ["monitoring", "self"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "editable": false,
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Prometheus Up",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 0, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "up{job=\"prometheus\"}", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Alertmanager Up",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 3, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "up{job=\"alertmanager\"}", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Prometheus Config Reload OK",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 6, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "prometheus_config_last_reload_successful", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "OK", "color": "green" }, "0": { "text": "FAILED", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Alertmanager Config Reload OK",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 9, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "alertmanager_config_last_reload_successful", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "OK", "color": "green" }, "0": { "text": "FAILED", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Watchdog Firing",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 12, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "max(ALERTS{alertname=\"Watchdog\", alertstate=\"firing\"}) or vector(0)", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "FIRING", "color": "green" }, "0": { "text": "MISSING", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Active Alerts (firing)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 15, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "count(ALERTS{alertstate=\"firing\", alertname!=\"Watchdog\"}) or vector(0)", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "TSDB Head Series",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "refId": "A", "expr": "prometheus_tsdb_head_series", "legendFormat": "head series" }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Samples Appended / s",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "refId": "A", "expr": "rate(prometheus_tsdb_head_samples_appended_total[5m])", "legendFormat": "samples/s" }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Rule Group Evaluation Duration",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        { "refId": "A", "expr": "prometheus_rule_group_last_duration_seconds", "legendFormat": "{{rule_group}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Scrape Duration by Job",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "refId": "A", "expr": "max by (job) (scrape_duration_seconds)", "legendFormat": "{{job}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Alertmanager Notifications / s",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (integration) (rate(alertmanager_notifications_total[5m]))", "legendFormat": "sent {{integration}}" },
+        { "refId": "B", "expr": "sum by (integration) (rate(alertmanager_notifications_failed_total[5m]))", "legendFormat": "failed {{integration}}" }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "TSDB Storage Size",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        { "refId": "A", "expr": "prometheus_tsdb_storage_blocks_bytes", "legendFormat": "blocks" },
+        { "refId": "B", "expr": "prometheus_tsdb_wal_storage_size_bytes", "legendFormat": "wal" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    }
+  ]
+}

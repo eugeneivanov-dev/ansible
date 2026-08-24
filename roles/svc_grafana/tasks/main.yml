@@ -146,6 +146,14 @@
     group: grafana
     mode: "0750"
 
+- name: Deploy provisioned dashboards
+  ansible.builtin.copy:
+    src: dashboards/
+    dest: /var/lib/grafana/dashboards/
+    owner: root
+    group: grafana
+    mode: "0640"
+
 - name: Provision the Prometheus datasource
   ansible.builtin.copy:
     src: provisioning-datasource.yml
