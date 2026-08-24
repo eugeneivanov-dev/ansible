@@ -1,0 +1,19 @@
+[server]
+protocol = https
+http_addr = 0.0.0.0
+http_port = 3000
+domain = {{ inventory_hostname }}
+root_url = https://{{ inventory_hostname }}:3000/
+cert_file = {{ svc_grafana_cert_file }}
+cert_key = {{ svc_grafana_key_file }}
+
+[security]
+admin_password = {{ vault_grafana_admin_password }}
+cookie_secure = true
+
+[analytics]
+reporting_enabled = false
+check_for_updates = false
+
+[unified_alerting]
+enabled = false
