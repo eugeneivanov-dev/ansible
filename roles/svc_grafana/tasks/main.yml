@@ -1,0 +1,27 @@
+---
+- name: Deploy Grafana vendor repository
+  ansible.builtin.copy:
+    src: grafana.repo
+    dest: /etc/yum.repos.d/grafana.repo
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Import Grafana GPG key
+  ansible.builtin.rpm_key:
+    key: https://rpm.grafana.com/gpg.key
+    state: present
+
+- name: Install Grafana (pinned version)
+  ansible.builtin.dnf:
+    name: "grafana-{{ svc_grafana_version }}"
+    state: present
+    allow_downgrade: true
+    disable_excludes: grafana
+  notify: Restart grafana
+
+- name: Enable and start grafana-server
+  ansible.builtin.systemd_service:
+    name: grafana-server
+    enabled: true
+    state: started

@@ -8,3 +8,4 @@
   roles:
     - svc_prometheus
     - svc_alertmanager
+    - svc_grafana
