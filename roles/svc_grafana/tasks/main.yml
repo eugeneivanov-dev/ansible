@@ -100,7 +100,7 @@
       -d {{ inventory_hostname }} --ecc
       --key-file {{ svc_grafana_key_file }}
       --fullchain-file {{ svc_grafana_cert_file }}
-      --reloadcmd "systemctl restart grafana-server"
+      --reloadcmd "systemctl try-restart grafana-server"
       --home {{ svc_grafana_acme_home }}
     creates: "{{ svc_grafana_key_file }}"
 
