@@ -18,7 +18,6 @@
     state: present
     allow_downgrade: true
     disable_excludes: grafana
-  notify: Restart grafana
 
 - name: Install TLS contour packages
   ansible.builtin.dnf:
