@@ -1,18 +1,2 @@
 ---
-ubuntu_netplan_address_ip: "192.168.10.90"
-
-ubuntu_ufw_app_ports:
-  - port: "80"
-    from: "192.168.30.0/24"
-  - port: "80"
-    from: "10.22.22.0/24"
-  - port: "443"
-    from: "192.168.30.0/24"
-  - port: "443"
-    from: "10.22.22.0/24"
-  # compose-bridge consumers (subnet pinned in /opt/monitoring/docker-compose.yml):
-  # prometheus scrapes host node_exporter; blackbox probes grafana/prometheus vhosts
-  - port: "9100"
-    from: "172.18.0.0/16"
-  - port: "443"
-    from: "172.18.0.0/16"
+svc_prometheus_tsdb_device: /dev/sda
