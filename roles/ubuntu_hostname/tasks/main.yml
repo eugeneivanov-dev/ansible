@@ -2,3 +2,9 @@
 - name: Set the static hostname to the inventory FQDN
   ansible.builtin.hostname:
     name: "{{ inventory_hostname }}"
+
+- name: Point 127.0.1.1 at the FQDN with the short name as an alias
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ inventory_hostname }} {{ inventory_hostname.split('.')[0] }}"
