@@ -1,0 +1,48 @@
+---
+- name: Ensure nfs-utils is installed
+  ansible.builtin.dnf:
+    name: nfs-utils
+    state: present
+
+- name: Mount the NAS dump share
+  ansible.posix.mount:
+    src: "{{ svc_prometheus_snapshot_nfs_src }}"
+    path: "{{ svc_prometheus_snapshot_nfs_mount }}"
+    fstype: nfs
+    opts: defaults,_netdev
+    state: mounted
+
+- name: Deploy the snapshot script
+  ansible.builtin.template:
+    src: prometheus-snapshot.sh.j2
+    dest: /usr/local/bin/prometheus-snapshot.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy the snapshot service unit
+  ansible.builtin.template:
+    src: prometheus-snapshot.service.j2
+    dest: /etc/systemd/system/prometheus-snapshot.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Deploy the snapshot timer
+  ansible.builtin.template:
+    src: prometheus-snapshot.timer.j2
+    dest: /etc/systemd/system/prometheus-snapshot.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Flush handlers before enabling the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start the snapshot timer
+  ansible.builtin.systemd_service:
+    name: prometheus-snapshot.timer
+    enabled: true
+    state: started

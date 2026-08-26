@@ -1,0 +1,10 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=Prometheus TSDB snapshot to NAS
+Requires=prometheus.service
+After=prometheus.service network-online.target
+RequiresMountsFor={{ svc_prometheus_snapshot_nfs_mount }}
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/prometheus-snapshot.sh

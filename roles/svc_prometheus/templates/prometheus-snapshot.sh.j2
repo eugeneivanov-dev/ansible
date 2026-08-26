@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+{{ ansible_managed | comment }}
+# Prometheus TSDB snapshot -> NAS. Called by prometheus-snapshot.timer.
+# Takes a snapshot via the admin API (localhost only), copies it to the
+# NFS share, removes the local snapshot, rotates old copies on the share.
+set -euo pipefail
+
+API=http://127.0.0.1:9090/api/v1/admin/tsdb/snapshot
+TSDB={{ svc_prometheus_tsdb_mount }}
+DEST={{ svc_prometheus_snapshot_nfs_mount }}/{{ svc_prometheus_snapshot_dest_subdir }}
+KEEP={{ svc_prometheus_snapshot_keep }}
+
+name=$(curl -sf -XPOST "$API" | sed -n 's/.*"name":"\([^"]*\)".*/\1/p')
+[ -n "$name" ] || { echo "snapshot API returned no name" >&2; exit 1; }
+
+mkdir -p "$DEST"
+cp -r "$TSDB/snapshots/$name" "$DEST/$name"
+rm -rf "$TSDB/snapshots/$name"
+
+ls -1d "$DEST"/*/ 2>/dev/null | sort | head -n -"$KEEP" | xargs -r rm -rf
+echo "snapshot $name copied to $DEST, keeping last $KEEP"

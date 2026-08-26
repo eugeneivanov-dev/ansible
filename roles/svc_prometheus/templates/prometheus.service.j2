@@ -14,6 +14,7 @@ ExecStart={{ svc_prometheus_install_dir }}/prometheus \
     --storage.tsdb.path={{ svc_prometheus_tsdb_mount }} \
     --storage.tsdb.retention.time={{ svc_prometheus_retention_time }} \
     --storage.tsdb.retention.size={{ svc_prometheus_retention_size }} \
+    --web.enable-admin-api \
     --web.listen-address=127.0.0.1:9090
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure

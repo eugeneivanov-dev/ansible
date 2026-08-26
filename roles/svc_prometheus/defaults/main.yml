@@ -18,3 +18,12 @@ svc_prometheus_config_dir: /etc/prometheus
 # below the 50G TSDB volume to leave air for WAL and compaction.
 svc_prometheus_retention_time: 90d
 svc_prometheus_retention_size: 40GB
+
+# TSDB snapshot backup: a systemd timer calls the snapshot API and
+# copies the result off-host to the lab NAS (same NFS share the app
+# VMs use for their database dumps). Old copies rotate on the share.
+svc_prometheus_snapshot_nfs_src: "192.168.10.205:/volume1/vm-db-dumps"
+svc_prometheus_snapshot_nfs_mount: /mnt/vm-db-dumps
+svc_prometheus_snapshot_dest_subdir: monitor
+svc_prometheus_snapshot_timer_oncalendar: "*-*-* 03:30:00"
+svc_prometheus_snapshot_keep: 7
