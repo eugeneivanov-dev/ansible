@@ -1,2 +1,2 @@
 ---
-svc_prometheus_tsdb_device: /dev/sda
+svc_prometheus_tsdb_device: /dev/sdb
