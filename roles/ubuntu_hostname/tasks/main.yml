@@ -1,0 +1,4 @@
+---
+- name: Set the static hostname to the inventory FQDN
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"

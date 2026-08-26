@@ -42,3 +42,5 @@
       tags: ubuntu_netplan
     - role: ubuntu_monitoring_agent
       tags: ubuntu_monitoring_agent
+    - role: ubuntu_hostname
+      tags: ubuntu_hostname
