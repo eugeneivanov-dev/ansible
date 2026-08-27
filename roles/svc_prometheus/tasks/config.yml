@@ -11,6 +11,7 @@
     - node.rules.yml
     - prometheus.rules.yml
     - watchdog.rules.yml
+    - blackbox.rules.yml
   notify: Restart prometheus
 
 - name: Deploy blackbox probe targets
