@@ -60,7 +60,7 @@ groups:
       - alert: SSLCertExpiringSoon
         expr: >-
           probe_ssl_earliest_cert_expiry{job="blackbox-https",
-          group!~"grafana|step-ca"} - time() < 14 * 24 * 3600
+          group!~"grafana|step-ca|pve1|pve2"} - time() < 14 * 24 * 3600
         for: 30m
         labels:
           severity: warning
@@ -73,13 +73,27 @@ groups:
       - alert: SSLCertShortLivedExpiring
         expr: >-
           probe_ssl_earliest_cert_expiry{job="blackbox-https",
-          group=~"grafana|step-ca"} - time() < 2 * 24 * 3600
+          group=~"grafana|pve1|pve2"} - time() < 2 * 24 * 3600
         for: 30m
         labels:
           severity: critical
         annotations:
           summary: "Short-lived TLS certificate for {{ $labels.instance }} expires within 2 days"
           description: >-
-            The step-ca issued certificate at {{ $labels.instance }}
+            The 7-day certificate at {{ $labels.instance }}
             (group {{ $labels.group }}) expires in under 2 days —
-            automated renewal has likely been failing for over a day.
+            automated renewal has likely been failing for days.
+
+      - alert: SSLCertDailyExpiring
+        expr: >-
+          probe_ssl_earliest_cert_expiry{job="blackbox-https",
+          group="step-ca"} - time() < 6 * 3600
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Daily-cycle TLS certificate for {{ $labels.instance }} expires within 6 hours"
+          description: >-
+            The one-day certificate at {{ $labels.instance }}
+            (group {{ $labels.group }}) expires in under 6 hours —
+            step-ca has not renewed its own listener certificate today.
