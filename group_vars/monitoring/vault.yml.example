@@ -27,6 +27,13 @@ vault_blackbox_https_targets:
     labels:
       group: example-site
 
+# HTTPS probes without TLS verification (https_2xx_insecure module,
+# for endpoints with self-signed certificates)
+vault_blackbox_https_insecure_targets:
+  - target: "https://192.0.2.9"
+    labels:
+      group: example-appliance
+
 # HTTP probes (http_2xx module)
 vault_blackbox_http_targets:
   - target: "http://192.0.2.10:8080"

@@ -15,6 +15,11 @@ vault_blackbox_https_targets:
     labels:
       group: example-site
 
+vault_blackbox_https_insecure_targets:
+  - target: "https://192.0.2.9"
+    labels:
+      group: example-appliance
+
 vault_blackbox_http_targets:
   - target: "http://192.0.2.10:8080"
     labels:

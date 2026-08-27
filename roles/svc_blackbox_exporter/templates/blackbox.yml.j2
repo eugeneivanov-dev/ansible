@@ -19,6 +19,18 @@ modules:
       fail_if_not_ssl: true
       preferred_ip_protocol: "ip4"
 
+  https_2xx_insecure:
+    prober: http
+    timeout: {{ svc_blackbox_exporter_probe_timeout }}
+    http:
+      method: GET
+      follow_redirects: true
+      valid_status_codes: []
+      fail_if_not_ssl: true
+      preferred_ip_protocol: "ip4"
+      tls_config:
+        insecure_skip_verify: true
+
   tcp_connect:
     prober: tcp
     timeout: {{ svc_blackbox_exporter_probe_timeout }}

@@ -47,6 +47,7 @@
         mode: "0644"
       loop:
         - https
+        - https_insecure
         - http
         - tcp
         - dns
