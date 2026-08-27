@@ -13,6 +13,19 @@
     - watchdog.rules.yml
   notify: Restart prometheus
 
+- name: Deploy blackbox probe targets
+  ansible.builtin.template:
+    src: "blackbox_{{ item }}_targets.json.j2"
+    dest: "{{ svc_prometheus_config_dir }}/targets/blackbox_{{ item }}.json"
+    owner: root
+    group: prometheus
+    mode: "0640"
+  loop:
+    - https
+    - http
+    - tcp
+    - dns
+
 - name: Deploy prometheus.yml
   ansible.builtin.template:
     src: prometheus.yml.j2

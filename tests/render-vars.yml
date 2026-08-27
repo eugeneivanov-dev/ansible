@@ -9,3 +9,23 @@ vault_alertmanager_smtp_username: alerts@example.com
 vault_alertmanager_smtp_password: changeme
 vault_alertmanager_email_to: you@example.com
 vault_watchdog_ping_url: https://hc-ping.com/00000000-0000-0000-0000-000000000000
+
+vault_blackbox_https_targets:
+  - target: "https://www.example.com/"
+    labels:
+      group: example-site
+
+vault_blackbox_http_targets:
+  - target: "http://192.0.2.10:8080"
+    labels:
+      group: example-app
+
+vault_blackbox_tcp_targets:
+  - target: "192.0.2.11:22"
+    labels:
+      group: ssh-example
+
+vault_blackbox_dns_targets:
+  - target: "192.0.2.12:53"
+    labels:
+      group: resolve-example

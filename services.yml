@@ -1,11 +1,14 @@
 ---
 # Services layer — infrastructure services on top of the OS baseline (site.yml).
-# Roles arrive per phase: svc_prometheus, svc_alertmanager, svc_grafana.
+# Roles arrive per phase: svc_blackbox_exporter, svc_prometheus,
+# svc_alertmanager, svc_grafana. The prober precedes Prometheus so that
+# a clean run brings the probe endpoint up before anything scrapes it.
 
 - name: Monitoring stack
   hosts: monitoring
   become: true
   roles:
+    - svc_blackbox_exporter
     - svc_prometheus
     - svc_alertmanager
     - svc_grafana

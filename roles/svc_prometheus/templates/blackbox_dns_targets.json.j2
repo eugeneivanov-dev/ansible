@@ -1,0 +1,14 @@
+[
+{% for entry in vault_blackbox_dns_targets %}
+  {
+    "targets": ["{{ entry.target }}"],
+    "labels": {
+{% for key, value in entry.labels.items() %}
+      "{{ key }}": "{{ value }}"{% if not loop.last %},{% endif %}
+
+{% endfor %}
+    }
+  }{% if not loop.last %},{% endif %}
+
+{% endfor %}
+]
