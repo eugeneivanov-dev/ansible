@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Availability checks for self-hosted lab services using Prometheus Blackbox Exporter: HTTPS, HTTP, TCP and DNS probes.",
+  "description": "Availability checks for self-hosted lab services using Prometheus Blackbox Exporter: HTTPS, HTTP, TCP and DNS probes, plus TLS certificate expiry.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -257,8 +257,8 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "wideLayout": true,
+        "textMode": "auto"
       },
       "pluginVersion": "13.0.1",
       "targets": [
@@ -364,6 +364,83 @@
         }
       ],
       "title": "DNS Service Availability",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Days until TLS certificate expiry per HTTPS target. Colors follow the shortest lifecycle class: red under 6 hours, yellow under 2 days. Alert thresholds are per lifecycle class in blackbox.rules.yml.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "displayName": "${__field.labels.group}",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 0.25
+              },
+              {
+                "color": "green",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "d"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "(probe_ssl_earliest_cert_expiry{job=\"blackbox-https\"} - time()) / 86400",
+          "format": "time_series",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "SSL Certificate Expiry (days)",
       "type": "stat"
     }
   ],
