@@ -27,7 +27,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "HTTPS availability checks collected through Blackbox Exporter (https_2xx module, TLS enforced).",
+      "description": "HTTPS availability checks collected through Blackbox Exporter (https_2xx and https_2xx_insecure modules).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -97,7 +97,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "probe_success{job=\"blackbox-https\"}",
+          "expr": "probe_success{job=~\"blackbox-https.*\"}",
           "format": "time_series",
           "instant": true,
           "legendFormat": "__auto",
@@ -432,7 +432,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "(probe_ssl_earliest_cert_expiry{job=\"blackbox-https\"} - time()) / 86400",
+          "expr": "(probe_ssl_earliest_cert_expiry{job=~\"blackbox-https.*\"} - time()) / 86400",
           "format": "time_series",
           "instant": true,
           "legendFormat": "__auto",
