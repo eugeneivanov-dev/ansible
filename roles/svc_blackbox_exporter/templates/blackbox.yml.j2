@@ -1,0 +1,36 @@
+{{ ansible_managed | comment }}
+modules:
+  http_2xx:
+    prober: http
+    timeout: {{ svc_blackbox_exporter_probe_timeout }}
+    http:
+      method: GET
+      follow_redirects: true
+      valid_status_codes: []
+      preferred_ip_protocol: "ip4"
+
+  https_2xx:
+    prober: http
+    timeout: {{ svc_blackbox_exporter_probe_timeout }}
+    http:
+      method: GET
+      follow_redirects: true
+      valid_status_codes: []
+      fail_if_not_ssl: true
+      preferred_ip_protocol: "ip4"
+
+  tcp_connect:
+    prober: tcp
+    timeout: {{ svc_blackbox_exporter_probe_timeout }}
+    tcp:
+      preferred_ip_protocol: "ip4"
+
+  dns:
+    prober: dns
+    timeout: {{ svc_blackbox_exporter_probe_timeout }}
+    dns:
+      query_name: "{{ svc_blackbox_exporter_dns_query_name }}"
+      query_type: "{{ svc_blackbox_exporter_dns_query_type }}"
+      preferred_ip_protocol: "ip4"
+      valid_rcodes:
+        - NOERROR

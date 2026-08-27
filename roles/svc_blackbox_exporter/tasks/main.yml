@@ -1,0 +1,12 @@
+---
+- name: Service user
+  ansible.builtin.import_tasks: user.yml
+
+- name: Pinned binary installation
+  ansible.builtin.import_tasks: binary.yml
+
+- name: Blackbox exporter configuration
+  ansible.builtin.import_tasks: config.yml
+
+- name: Systemd service
+  ansible.builtin.import_tasks: service.yml

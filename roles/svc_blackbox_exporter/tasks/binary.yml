@@ -1,0 +1,27 @@
+---
+- name: Download blackbox_exporter release tarball
+  ansible.builtin.get_url:
+    url: >-
+      https://github.com/prometheus/blackbox_exporter/releases/download/v{{ svc_blackbox_exporter_version
+      }}/blackbox_exporter-{{ svc_blackbox_exporter_version }}.linux-amd64.tar.gz
+    dest: "/opt/blackbox_exporter-{{ svc_blackbox_exporter_version }}.linux-amd64.tar.gz"
+    checksum: "{{ svc_blackbox_exporter_checksum }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unpack blackbox_exporter release
+  ansible.builtin.unarchive:
+    src: "/opt/blackbox_exporter-{{ svc_blackbox_exporter_version }}.linux-amd64.tar.gz"
+    dest: /opt
+    remote_src: true
+    creates: "/opt/blackbox_exporter-{{ svc_blackbox_exporter_version }}.linux-amd64/blackbox_exporter"
+    owner: root
+    group: root
+
+- name: Link current blackbox_exporter release
+  ansible.builtin.file:
+    src: "/opt/blackbox_exporter-{{ svc_blackbox_exporter_version }}.linux-amd64"
+    dest: "{{ svc_blackbox_exporter_install_dir }}"
+    state: link
+  notify: Restart blackbox_exporter

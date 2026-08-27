@@ -1,0 +1,9 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Restart blackbox_exporter
+  ansible.builtin.systemd_service:
+    name: blackbox_exporter
+    state: restarted
