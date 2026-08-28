@@ -4,7 +4,7 @@
 # in the scrape request (same pattern as blackbox_exporter).
 
 # PyPI package, pinned
-svc_pve_exporter_version: "3.5.5"
+svc_pve_exporter_version: "3.10.0"
 
 # Listener: localhost only, scraped by the local Prometheus
 svc_pve_exporter_listen_address: "127.0.0.1"
