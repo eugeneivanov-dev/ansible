@@ -3,7 +3,7 @@ groups:
   - name: pve
     rules:
       - alert: PveNodeDown
-        expr: pve_up{id=~"node/.*"} == 0
+        expr: max by (id) (pve_up{id=~"node/.*"}) == 0
         for: 3m
         labels:
           severity: critical
@@ -11,48 +11,53 @@ groups:
           summary: "Proxmox node {{ $labels.id }} is down"
           description: >-
             The Proxmox API reports node {{ $labels.id }}
-            (target {{ $labels.instance }}) as offline for 3 minutes.
+            as offline for 3 minutes.
 
       - alert: PveVmDown
-        expr: pve_up{id=~"qemu/.*", id!="qemu/150"} == 0
+        expr: max by (id) (pve_up{id=~"qemu/.*", id!="qemu/150"}) == 0
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "VM {{ $labels.id }} on {{ $labels.instance }} is down"
+          summary: "VM {{ $labels.id }} is down"
           description: >-
             VM {{ $labels.id }} has been reported stopped by the Proxmox API
             for 5 minutes. CML (qemu/150) is excluded as an on-demand guest.
 
       - alert: PveStorageFillingUp
         expr: >-
-          pve_disk_usage_bytes{id=~"storage/.*"}
-          / pve_disk_size_bytes{id=~"storage/.*"} > 0.85
+          max by (id) (
+            pve_disk_usage_bytes{id=~"storage/.*"}
+            / pve_disk_size_bytes{id=~"storage/.*"}
+          ) > 0.85
         for: 15m
         labels:
           severity: warning
         annotations:
           summary: "Proxmox storage {{ $labels.id }} above 85%"
           description: >-
-            Storage {{ $labels.id }} on {{ $labels.instance }} has been
-            over 85% full for 15 minutes.
+            Storage {{ $labels.id }} has been over 85% full for 15 minutes.
 
       - alert: PveStorageCritical
         expr: >-
-          pve_disk_usage_bytes{id=~"storage/.*"}
-          / pve_disk_size_bytes{id=~"storage/.*"} > 0.95
+          max by (id) (
+            pve_disk_usage_bytes{id=~"storage/.*"}
+            / pve_disk_size_bytes{id=~"storage/.*"}
+          ) > 0.95
         for: 5m
         labels:
           severity: critical
         annotations:
           summary: "Proxmox storage {{ $labels.id }} above 95%"
           description: >-
-            Storage {{ $labels.id }} on {{ $labels.instance }} has been
-            over 95% full for 5 minutes — VM disks and backups are at risk.
+            Storage {{ $labels.id }} has been over 95% full for 5 minutes —
+            VM disks and backups are at risk.
 
       - alert: PveReplicationStale
         expr: >-
-          time() - pve_replication_last_sync_timestamp_seconds > 3600
+          max by (id) (
+            time() - pve_replication_last_sync_timestamp_seconds
+          ) > 3600
         for: 10m
         labels:
           severity: critical
