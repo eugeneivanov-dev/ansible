@@ -45,3 +45,11 @@
     owner: root
     group: prometheus
     mode: "0640"
+
+- name: Deploy pve exporter targets
+  ansible.builtin.template:
+    src: pve_targets.json.j2
+    dest: "{{ svc_prometheus_config_dir }}/targets/pve.json"
+    owner: root
+    group: prometheus
+    mode: "0640"
