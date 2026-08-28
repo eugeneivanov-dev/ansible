@@ -34,3 +34,15 @@ vault_blackbox_dns_targets:
   - target: "192.0.2.12:53"
     labels:
       group: resolve-example
+
+vault_pve_api_user: prometheus@pve
+vault_pve_api_token_name: monitoring
+vault_pve_api_token_value: 00000000-0000-0000-0000-000000000000
+
+vault_pve_targets:
+  - target: pve1.example.com
+    labels:
+      node: pve1
+  - target: pve2.example.com
+    labels:
+      node: pve2
