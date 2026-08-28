@@ -49,3 +49,16 @@ groups:
           description: >-
             Storage {{ $labels.id }} on {{ $labels.instance }} has been
             over 95% full for 5 minutes — VM disks and backups are at risk.
+
+      - alert: PveReplicationStale
+        expr: >-
+          time() - pve_replication_last_sync_timestamp_seconds > 3600
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Proxmox replication job {{ $labels.id }} is stale"
+          description: >-
+            Replication job {{ $labels.id }} has not completed a sync
+            for over an hour (schedule is every 15 minutes) — ZFS replicas
+            are falling behind, HA failover would lose recent data.
