@@ -25,5 +25,7 @@ svc_pve_exporter_api_user: "{{ vault_pve_api_user }}"
 svc_pve_exporter_api_token_name: "{{ vault_pve_api_token_name }}"
 svc_pve_exporter_api_token_value: "{{ vault_pve_api_token_value }}"
 
-# TLS verification against the lab CA (root in system trust store)
-svc_pve_exporter_verify_ssl: true
+# TLS verification: path to the CA bundle the exporter trusts.
+# The system bundle already contains the lab root (baseline trust);
+# proxmoxer passes this value straight to requests' verify.
+svc_pve_exporter_verify_ssl: /etc/pki/tls/certs/ca-bundle.crt

@@ -2,8 +2,9 @@
 # pve-exporter configuration: Proxmox API access.
 # Module "default" is used for all targets; the node is selected
 # per scrape request (?target=...), not here.
+# verify_ssl: path to the trusted CA bundle (passed to requests' verify).
 default:
   user: {{ svc_pve_exporter_api_user }}
   token_name: {{ svc_pve_exporter_api_token_name }}
   token_value: "{{ svc_pve_exporter_api_token_value }}"
-  verify_ssl: {{ svc_pve_exporter_verify_ssl | lower }}
+  verify_ssl: {{ svc_pve_exporter_verify_ssl }}
