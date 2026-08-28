@@ -1,0 +1,29 @@
+---
+# svc_pve_exporter — Prometheus exporter for Proxmox VE metrics.
+# One instance, multi-target: Prometheus passes the node as ?target=
+# in the scrape request (same pattern as blackbox_exporter).
+
+# PyPI package, pinned
+svc_pve_exporter_version: "3.5.5"
+
+# Listener: localhost only, scraped by the local Prometheus
+svc_pve_exporter_listen_address: "127.0.0.1"
+svc_pve_exporter_listen_port: 9221
+
+# Layout
+svc_pve_exporter_base_dir: /opt/pve-exporter
+svc_pve_exporter_venv_dir: /opt/pve-exporter/venv
+svc_pve_exporter_config_dir: /etc/pve-exporter
+svc_pve_exporter_config_file: /etc/pve-exporter/pve.yml
+
+# Service identity
+svc_pve_exporter_user: pve-exporter
+svc_pve_exporter_group: pve-exporter
+
+# Proxmox API credentials (vault)
+svc_pve_exporter_api_user: "{{ vault_pve_api_user }}"
+svc_pve_exporter_api_token_name: "{{ vault_pve_api_token_name }}"
+svc_pve_exporter_api_token_value: "{{ vault_pve_api_token_value }}"
+
+# TLS verification against the lab CA (root in system trust store)
+svc_pve_exporter_verify_ssl: true

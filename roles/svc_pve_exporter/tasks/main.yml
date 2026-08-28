@@ -1,0 +1,64 @@
+---
+# svc_pve_exporter: Proxmox VE metrics exporter.
+# Python package in a dedicated venv; multi-target instance on localhost.
+
+- name: Svc_pve_exporter | Create service group
+  ansible.builtin.group:
+    name: "{{ svc_pve_exporter_group }}"
+    system: true
+
+- name: Svc_pve_exporter | Create service user
+  ansible.builtin.user:
+    name: "{{ svc_pve_exporter_user }}"
+    group: "{{ svc_pve_exporter_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ svc_pve_exporter_base_dir }}"
+    create_home: false
+
+- name: Svc_pve_exporter | Create base directory
+  ansible.builtin.file:
+    path: "{{ svc_pve_exporter_base_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Svc_pve_exporter | Install exporter into venv
+  ansible.builtin.pip:
+    name: "prometheus-pve-exporter=={{ svc_pve_exporter_version }}"
+    virtualenv: "{{ svc_pve_exporter_venv_dir }}"
+    virtualenv_command: "python3 -m venv"
+
+- name: Svc_pve_exporter | Create config directory
+  ansible.builtin.file:
+    path: "{{ svc_pve_exporter_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ svc_pve_exporter_group }}"
+    mode: "0750"
+
+- name: Svc_pve_exporter | Deploy exporter config
+  ansible.builtin.template:
+    src: pve.yml.j2
+    dest: "{{ svc_pve_exporter_config_file }}"
+    owner: root
+    group: "{{ svc_pve_exporter_group }}"
+    mode: "0640"
+  notify: Svc_pve_exporter | Restart pve_exporter
+
+- name: Svc_pve_exporter | Deploy systemd unit
+  ansible.builtin.template:
+    src: pve_exporter.service.j2
+    dest: /etc/systemd/system/pve_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Svc_pve_exporter | Restart pve_exporter
+
+- name: Svc_pve_exporter | Enable and start pve_exporter
+  ansible.builtin.systemd_service:
+    name: pve_exporter
+    state: started
+    enabled: true
+    daemon_reload: true

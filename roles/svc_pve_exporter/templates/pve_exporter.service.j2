@@ -1,0 +1,33 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Prometheus Proxmox VE exporter
+Documentation=https://github.com/prometheus-pve/prometheus-pve-exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ svc_pve_exporter_user }}
+Group={{ svc_pve_exporter_group }}
+ExecStart={{ svc_pve_exporter_venv_dir }}/bin/pve_exporter \
+    --config.file {{ svc_pve_exporter_config_file }} \
+    --web.listen-address {{ svc_pve_exporter_listen_address }}:{{ svc_pve_exporter_listen_port }}
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+
+[Install]
+WantedBy=multi-user.target

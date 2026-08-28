@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+# pve-exporter configuration: Proxmox API access.
+# Module "default" is used for all targets; the node is selected
+# per scrape request (?target=...), not here.
+default:
+  user: {{ svc_pve_exporter_api_user }}
+  token_name: {{ svc_pve_exporter_api_token_name }}
+  token_value: "{{ svc_pve_exporter_api_token_value }}"
+  verify_ssl: {{ svc_pve_exporter_verify_ssl | lower }}
