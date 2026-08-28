@@ -24,6 +24,11 @@
     group: root
     mode: "0755"
 
+- name: Svc_pve_exporter | Install pip module dependency
+  ansible.builtin.dnf:
+    name: python3-packaging
+    state: present
+
 - name: Svc_pve_exporter | Install exporter into venv
   ansible.builtin.pip:
     name: "prometheus-pve-exporter=={{ svc_pve_exporter_version }}"
