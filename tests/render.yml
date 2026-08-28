@@ -4,7 +4,8 @@
 # promtool / amtool can validate the results. Run from the repo root:
 #   ansible-playbook tests/render.yml
 # Output: /tmp/rendered/prometheus.yml, /tmp/rendered/alertmanager.yml,
-# /tmp/rendered/blackbox.yml, /tmp/rendered/blackbox_*.json
+# /tmp/rendered/blackbox.yml, /tmp/rendered/blackbox_*.json,
+# /tmp/rendered/pve.yml, /tmp/rendered/pve.json
 
 - name: Render monitoring config templates
   hosts: localhost
@@ -14,6 +15,7 @@
     - ../roles/svc_prometheus/defaults/main.yml
     - ../roles/svc_alertmanager/defaults/main.yml
     - ../roles/svc_blackbox_exporter/defaults/main.yml
+    - ../roles/svc_pve_exporter/defaults/main.yml
     - render-vars.yml
   tasks:
     - name: Create output directory
@@ -51,3 +53,15 @@
         - http
         - tcp
         - dns
+
+    - name: Render pve exporter config
+      ansible.builtin.template:
+        src: ../roles/svc_pve_exporter/templates/pve.yml.j2
+        dest: /tmp/rendered/pve.yml
+        mode: "0644"
+
+    - name: Render pve exporter targets
+      ansible.builtin.template:
+        src: ../roles/svc_prometheus/templates/pve_targets.json.j2
+        dest: /tmp/rendered/pve.json
+        mode: "0644"
