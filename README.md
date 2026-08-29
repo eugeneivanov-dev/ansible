@@ -4,7 +4,7 @@
 
 [![lint](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml/badge.svg)](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml)
 
-Configuration management for the infrastructure lab behind [eugeneivanov.dev](https://eugeneivanov.dev). This repository holds two layers. The OS baseline: the standard every VM used to get by hand, rewritten as idempotent roles for both fleets — RHEL and Ubuntu. And the services layer on top of it: the lab's monitoring stack — Prometheus, Alertmanager, Grafana, and Blackbox Exporter as native systemd services — built, migrated to production, and proven by clean-install runs. A new VM reaches the lab standard by running a playbook; an existing one proves it still matches by running the same playbook in check mode.
+Configuration management for the infrastructure lab behind [eugeneivanov.dev](https://eugeneivanov.dev). This repository holds two layers. The OS baseline: the standard every VM used to get by hand, rewritten as idempotent roles for both fleets — RHEL and Ubuntu. And the services layer on top of it: the lab's monitoring stack — Prometheus, Alertmanager, Grafana, and the Blackbox and PVE exporters as native systemd services — built, migrated to production, and proven by clean-install runs. A new VM reaches the lab standard by running a playbook; an existing one proves it still matches by running the same playbook in check mode.
 
 Project pages:  
 [Ansible Baseline for the Lab](https://eugeneivanov.dev/projects/ansible-baseline-for-the-lab/)  
@@ -23,7 +23,7 @@ Project pages:
 ansible.cfg               defaults: inventory path, remote user
 bootstrap.yml             one-time play: creates the automation user on new hosts (both fleets)
 site.yml                  two plays: rhel baseline (nine roles), ubuntu baseline (nine roles)
-services.yml              services layer on top of the baseline: the monitoring stack (four svc_* roles)
+services.yml              services layer on top of the baseline: the monitoring stack (five svc_* roles)
 inventory/hosts.yml       three groups: rhel, ubuntu — the managed fleets; monitoring — the services-layer host
 group_vars/all/           main.yml — lab facts (resolvers, search domain, gateway, monitor address, CA endpoints, trusted networks, node_exporter pin)
 group_vars/rhel/          rhel role inputs, referencing the lab facts; vault.yml.example — template for the encrypted vault
@@ -110,12 +110,13 @@ The order is designed for the worst moment of interruption: security layers run 
 
 ### Services layer (services.yml)
 
-The monitoring stack runs on a dedicated RHEL host in the `monitoring` group — every component a pinned native systemd service, no containers. The prober precedes Prometheus so a clean run brings the probe endpoint up before anything scrapes it:
+The monitoring stack runs on a dedicated RHEL host in the `monitoring` group — every component a pinned native systemd service, no containers. The exporters precede Prometheus so a clean run brings the scraped endpoints up before anything scrapes them:
 
 1. **svc_blackbox_exporter** — Blackbox Exporter as a pinned binary: versioned /opt install behind a symlink, hardened unit, loopback-only listener; probe modules rendered from a template (http, https with enforced TLS, https without verification for self-signed appliances, tcp, dns)
-2. **svc_prometheus** — Prometheus as a pinned binary on a dedicated TSDB volume (LVM, xfs, protective contract on the block device), loopback-only listener, explicit retention by time and size; fleet scrape targets generated from the inventory groups via file_sd, blackbox probe targets rendered from vault-held lists; alert rules as static files split by metric source (node, prometheus, watchdog, blackbox), every rule carrying a severity, validated with promtool on deploy; TSDB snapshot backup — snapshot via the admin API, copied to the NAS over NFS with rotation, driven by a systemd timer
-3. **svc_alertmanager** — Alertmanager as a pinned binary, loopback-only: severity-based routing (critical / warning / info) to email receivers, a watchdog receiver pinging an external dead man's switch, inhibit rules so a down host suppresses its own warnings; SMTP credentials from vault; config validated with amtool on deploy
-4. **svc_grafana** — Grafana from the vendor rpm repository (version pinned, protected from fleet updates via excludepkgs), TLS from the lab's internal CA over ACME with automatic renewal, unified alerting disabled — Alertmanager owns alerting; datasource and dashboards provisioned entirely from git, UI saves rejected by design; firewall opens the UI to the lab's trusted networks only
+2. **svc_pve_exporter** — Proxmox VE metrics exporter: a python package in a dedicated venv, one multi-target instance on localhost querying both cluster nodes over the API by FQDN, TLS verified against the system CA bundle; the API token (read-only PVEAuditor role) comes from vault
+3. **svc_prometheus** — Prometheus as a pinned binary on a dedicated TSDB volume (LVM, xfs, protective contract on the block device), loopback-only listener, explicit retention by time and size; fleet scrape targets generated from the inventory groups via file_sd, blackbox and pve targets rendered from vault-held lists; alert rules as static files split by metric source (node, prometheus, watchdog, blackbox, pve), every rule carrying a severity, validated with promtool on deploy; TSDB snapshot backup — snapshot via the admin API, copied to the NAS over NFS with rotation, driven by a systemd timer
+4. **svc_alertmanager** — Alertmanager as a pinned binary, loopback-only: severity-based routing (critical / warning / info) to email receivers, a watchdog receiver pinging an external dead man's switch, inhibit rules so a down host suppresses its own warnings; SMTP credentials from vault; config validated with amtool on deploy
+5. **svc_grafana** — Grafana from the vendor rpm repository (version pinned, protected from fleet updates via excludepkgs), TLS from the lab's internal CA over ACME with automatic renewal, unified alerting disabled — Alertmanager owns alerting; datasource and dashboards provisioned entirely from git, UI saves rejected by design; firewall opens the UI to the lab's trusted networks only
 
 Prometheus and Alertmanager never listen on the network — Grafana is the stack's only exposed endpoint. The alerting chain is closed from outside: an always-firing Watchdog alert pings an external service, so silence of the whole stack is itself an alert.
 
@@ -134,7 +135,7 @@ The sets differ where the platforms do: SELinux tooling exists only on RHEL, `bi
 
 The encrypted vault files never enter git. The repository carries a `vault.yml.example` with every expected key next to each real vault's location — `group_vars/rhel/` for the baseline, `group_vars/monitoring/` for the services layer; the real `vault.yml` is created from the template, encrypted with Ansible Vault, and stays on the machines that run plays. The vault passphrase lives outside the repository too — its path is provided by the `ANSIBLE_VAULT_PASSWORD_FILE` environment variable on each machine.
 
-The monitoring vault holds the SMTP credentials and alert destination for Alertmanager, the Grafana admin password, the dead man's switch ping URL, and the blackbox probe target lists — the targets are treated as secrets, and their structure is mirrored by the example file and the CI fixtures with fake values.
+The monitoring vault holds the SMTP credentials and alert destination for Alertmanager, the Grafana admin password, the dead man's switch ping URL, the blackbox probe target lists, and the Proxmox API token with its node targets — targets are treated as secrets, and their structure is mirrored by the example file and the CI fixtures with fake values.
 
 Ansible Vault here is a deliberate temporary minimum: secrets move to HashiCorp Vault when it arrives as its own service.
 
@@ -173,13 +174,13 @@ ansible-playbook site.yml --limit newhost.example.com
 
 Two layers are managed from here. The OS baseline — the layer every service stands on; both fleets are fully managed. And the services layer — the monitoring stack as code: the production monitoring host is built by playbook alone, was migrated from its hand-built predecessor by a clean cut-over, and its roles are proven by clean-install runs on disposable test VMs before touching the live host. Application deployment for the remaining services stays with each service's own mechanism.
 
-What stays outside the code by design: VM creation and OS installation, DNS zone records, the NAS export allow-list, and runtime operations like alert silences — procedures, not configuration.
+What stays outside the code by design: VM creation and OS installation, DNS zone records, the NAS export allow-list, the Proxmox API token lifecycle, and runtime operations like alert silences — procedures, not configuration.
 
 The lab is the proving ground behind [Proven Infrastructure Group](https://proveninfra.com): methods are rehearsed here before they reach client production. The code encodes the lab's decisions — addressing, DNS names, package choices — and is published as a working example, not a drop-in solution.
 
 ## CI
 
-Every push runs yamllint and ansible-lint (production profile) with pinned versions — the same commands and versions used locally. A second job validates the monitoring configs: alert rules are checked directly with promtool, and the Prometheus, Alertmanager, and Blackbox Exporter templates — including the file_sd target files — are rendered with fixture values (`tests/`), then checked with promtool and amtool — the same pinned versions the stack runs.
+Every push runs yamllint and ansible-lint (production profile) with pinned versions — the same commands and versions used locally. A second job validates the monitoring configs: alert rules are checked directly with promtool, and the Prometheus, Alertmanager, Blackbox and PVE exporter templates — including the file_sd target files — are rendered with fixture values (`tests/`), then checked with promtool and amtool — the same pinned versions the stack runs.
 
 ## History
 
