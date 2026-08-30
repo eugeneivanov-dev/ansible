@@ -1,0 +1,70 @@
+{
+  "uid": "fleet-logs",
+  "title": "Fleet Logs",
+  "tags": ["monitoring", "logs"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "editable": false,
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Log Volume by Host (lines/s)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (host) (rate({job=\"systemd-journal\"}[5m]))", "legendFormat": "{{host}}" }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Errors and Worse by Host (lines/s)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (host) (rate({job=\"systemd-journal\", level=~\"emerg|alert|crit|err\"}[5m]))", "legendFormat": "{{host}}" }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Top Units by Volume (selected range)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 8 },
+      "targets": [
+        { "refId": "A", "expr": "topk(10, sum by (unit) (count_over_time({job=\"systemd-journal\"}[$__range])))", "instant": true }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "unit": "Unit", "Value": "Lines" } } }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "sortBy": [ { "displayName": "Lines", "desc": true } ] }
+    },
+    {
+      "id": 4,
+      "type": "logs",
+      "title": "Latest Errors (fleet)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 10, "w": 16, "x": 8, "y": 8 },
+      "targets": [
+        { "refId": "A", "expr": "{job=\"systemd-journal\", level=~\"emerg|alert|crit|err\"}" }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "dedupStrategy": "none"
+      }
+    }
+  ]
+}
