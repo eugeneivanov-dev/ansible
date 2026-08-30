@@ -1,0 +1,83 @@
+---
+- name: Create alloy system user
+  ansible.builtin.user:
+    name: alloy
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    groups: systemd-journal
+    append: true
+    state: present
+
+- name: Create alloy config and state directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: alloy
+    mode: "0750"
+  loop:
+    - { path: "{{ ubuntu_log_agent_config_dir }}", owner: root }
+    - { path: "{{ ubuntu_log_agent_state_dir }}", owner: alloy }
+
+- name: Check installed alloy version
+  ansible.builtin.command: /usr/local/bin/alloy --version
+  register: ubuntu_log_agent_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Download alloy release archive
+  ansible.builtin.get_url:
+    url: "{{ ubuntu_log_agent_base }}/v{{ ubuntu_log_agent_version }}/{{ ubuntu_log_agent_archive }}"
+    dest: "/tmp/{{ ubuntu_log_agent_archive }}"
+    checksum: "sha256:{{ ubuntu_log_agent_sha256 }}"
+    mode: "0644"
+  when: ("v" + ubuntu_log_agent_version) not in ubuntu_log_agent_installed.stdout | default('')
+
+- name: Extract alloy binary
+  ansible.builtin.unarchive:
+    src: "/tmp/{{ ubuntu_log_agent_archive }}"
+    dest: /tmp
+    remote_src: true
+  when:
+    - ("v" + ubuntu_log_agent_version) not in ubuntu_log_agent_installed.stdout | default('')
+    - not ansible_check_mode
+
+- name: Install alloy binary
+  ansible.builtin.copy:
+    src: /tmp/alloy-linux-amd64
+    dest: /usr/local/bin/alloy
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - ("v" + ubuntu_log_agent_version) not in ubuntu_log_agent_installed.stdout | default('')
+    - not ansible_check_mode
+  notify: Restart alloy
+
+- name: Deploy alloy configuration
+  ansible.builtin.template:
+    src: config.alloy.j2
+    dest: "{{ ubuntu_log_agent_config_dir }}/config.alloy"
+    owner: root
+    group: alloy
+    mode: "0640"
+    validate: /usr/local/bin/alloy validate %s
+  notify: Restart alloy
+
+- name: Deploy alloy unit file
+  ansible.builtin.template:
+    src: alloy.service.j2
+    dest: /etc/systemd/system/alloy.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart alloy
+
+- name: Ensure alloy is enabled and started
+  ansible.builtin.systemd_service:
+    name: alloy
+    enabled: true
+    state: started

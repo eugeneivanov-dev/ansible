@@ -1,0 +1,16 @@
+[Unit]
+Description=Grafana Alloy log shipping agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=alloy
+Group=alloy
+ExecStart=/usr/local/bin/alloy run \
+    --storage.path={{ ubuntu_log_agent_state_dir }} \
+    --server.http.listen-addr=127.0.0.1:12345 \
+    {{ ubuntu_log_agent_config_dir }}/config.alloy
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

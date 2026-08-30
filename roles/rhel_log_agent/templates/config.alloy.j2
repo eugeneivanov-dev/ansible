@@ -1,0 +1,32 @@
+// {{ ansible_managed }}
+loki.source.journal "fleet" {
+  forward_to    = [loki.write.monitor.receiver]
+  relabel_rules = loki.relabel.journal.rules
+  labels        = { job = "systemd-journal", host = "{{ inventory_hostname }}" }
+}
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal_syslog_identifier"]
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    regex         = "(.+)"
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "level"
+  }
+}
+
+loki.write "monitor" {
+  endpoint {
+    url = "{{ rhel_log_agent_push_url }}"
+  }
+}

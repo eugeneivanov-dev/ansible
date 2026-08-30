@@ -1,0 +1,8 @@
+---
+rhel_log_agent_version: "{{ lab_alloy_version }}"
+rhel_log_agent_sha256: "{{ lab_alloy_sha256 }}"
+rhel_log_agent_base: "{{ lab_alloy_base }}"
+rhel_log_agent_archive: "{{ lab_alloy_archive }}"
+rhel_log_agent_push_url: "{{ lab_loki_push_url }}"
+rhel_log_agent_state_dir: /var/lib/alloy
+rhel_log_agent_config_dir: /etc/alloy

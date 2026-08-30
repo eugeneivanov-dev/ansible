@@ -1,0 +1,8 @@
+---
+ubuntu_log_agent_version: "{{ lab_alloy_version }}"
+ubuntu_log_agent_sha256: "{{ lab_alloy_sha256 }}"
+ubuntu_log_agent_base: "{{ lab_alloy_base }}"
+ubuntu_log_agent_archive: "{{ lab_alloy_archive }}"
+ubuntu_log_agent_push_url: "{{ lab_loki_push_url }}"
+ubuntu_log_agent_state_dir: /var/lib/alloy
+ubuntu_log_agent_config_dir: /etc/alloy

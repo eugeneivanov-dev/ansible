@@ -21,6 +21,8 @@
       tags: rhel_dns_resolver
     - role: rhel_monitoring_agent
       tags: rhel_monitoring_agent
+    - role: rhel_log_agent
+      tags: rhel_log_agent
 
 - name: Ubuntu baseline
   hosts: ubuntu
@@ -42,5 +44,7 @@
       tags: ubuntu_netplan
     - role: ubuntu_monitoring_agent
       tags: ubuntu_monitoring_agent
+    - role: ubuntu_log_agent
+      tags: ubuntu_log_agent
     - role: ubuntu_hostname
       tags: ubuntu_hostname
