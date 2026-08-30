@@ -5,6 +5,7 @@
       - vim
       - bash-completion
       - tar
+      - unzip
       - bind9-dnsutils
       - openssl
       - qemu-guest-agent

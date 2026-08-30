@@ -126,8 +126,8 @@ The standard set both `*_packages` roles install — general-purpose tools every
 
 | Fleet  | Packages |
 |--------|----------|
-| rhel   | vim, bash-completion, tar, policycoreutils-python-utils, bind-utils, openssl |
-| ubuntu | vim, bash-completion, tar, bind9-dnsutils, openssl, qemu-guest-agent |
+| rhel   | vim, bash-completion, tar, unzip, policycoreutils-python-utils, bind-utils, openssl |
+| ubuntu | vim, bash-completion, tar, unzip, bind9-dnsutils, openssl, qemu-guest-agent |
 
 The sets differ where the platforms do: SELinux tooling exists only on RHEL, `bind-utils` is named `bind9-dnsutils` on Ubuntu, and `qemu-guest-agent` ships preinstalled on the RHEL template but not in the Ubuntu installer. Changing a set means changing the role and this table in the same commit.
 

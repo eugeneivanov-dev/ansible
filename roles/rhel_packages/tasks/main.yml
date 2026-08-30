@@ -5,6 +5,7 @@
       - vim
       - bash-completion
       - tar
+      - unzip
       - policycoreutils-python-utils
       - bind-utils
       - openssl
