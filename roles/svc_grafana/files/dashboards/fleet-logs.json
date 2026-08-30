@@ -28,7 +28,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "targets": [
-        { "refId": "A", "expr": "sum by (host) (rate({job=\"systemd-journal\", level=~\"emerg|alert|crit|err\"}[5m]))", "legendFormat": "{{host}}" }
+        { "refId": "A", "expr": "sum by (host) (rate({job=\"systemd-journal\", level=~\"emerg|alert|crit|error\"}[5m]))", "legendFormat": "{{host}}" }
       ],
       "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
@@ -55,7 +55,7 @@
       "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 10, "w": 16, "x": 8, "y": 8 },
       "targets": [
-        { "refId": "A", "expr": "{job=\"systemd-journal\", level=~\"emerg|alert|crit|err\"}" }
+        { "refId": "A", "expr": "{job=\"systemd-journal\", level=~\"emerg|alert|crit|error\"}" }
       ],
       "options": {
         "showTime": true,
