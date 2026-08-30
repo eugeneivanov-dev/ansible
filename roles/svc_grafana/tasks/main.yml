@@ -30,6 +30,7 @@
   ansible.builtin.get_url:
     url: "{{ lab_ca_roots_url }}"
     dest: /etc/pki/ca-trust/source/anchors/lab-root-ca.crt
+    checksum: "sha256:{{ lab_ca_root_sha256 }}"
     owner: root
     group: root
     mode: "0644"
