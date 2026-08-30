@@ -31,6 +31,8 @@ jobs:
     env:
       PROMETHEUS_VERSION: 3.13.2
       ALERTMANAGER_VERSION: 0.34.0
+      LOKI_VERSION: 3.7.7
+      ALLOY_VERSION: 1.19.2
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -63,6 +65,27 @@ jobs:
           tar -xzf "${TARBALL}"
           sudo install "alertmanager-${ALERTMANAGER_VERSION}.linux-amd64/amtool" /usr/local/bin/amtool
 
+      - name: Download loki
+        run: |
+          ARCHIVE="loki-linux-amd64.zip"
+          BASE="https://github.com/grafana/loki/releases/download"
+          curl -sSLO "${BASE}/v${LOKI_VERSION}/${ARCHIVE}"
+          curl -sSLO "${BASE}/v${LOKI_VERSION}/SHA256SUMS"
+          grep "${ARCHIVE}" SHA256SUMS | sha256sum -c -
+          unzip -o "${ARCHIVE}"
+          sudo install loki-linux-amd64 /usr/local/bin/loki
+          rm -f SHA256SUMS
+
+      - name: Download alloy
+        run: |
+          ARCHIVE="alloy-linux-amd64.zip"
+          BASE="https://github.com/grafana/alloy/releases/download"
+          curl -sSLO "${BASE}/v${ALLOY_VERSION}/${ARCHIVE}"
+          curl -sSLO "${BASE}/v${ALLOY_VERSION}/SHA256SUMS"
+          grep "${ARCHIVE}" SHA256SUMS | sha256sum -c -
+          unzip -o "${ARCHIVE}"
+          sudo install alloy-linux-amd64 /usr/local/bin/alloy
+
       - name: Check alert rules
         run: promtool check rules roles/svc_prometheus/files/*.rules.yml
 
@@ -74,3 +97,9 @@ jobs:
 
       - name: Check rendered alertmanager.yml
         run: amtool check-config /tmp/rendered/alertmanager.yml
+
+      - name: Check rendered loki.yml
+        run: loki -config.file=/tmp/rendered/loki.yml -verify-config
+
+      - name: Check rendered alloy config
+        run: alloy validate /tmp/rendered/config.alloy

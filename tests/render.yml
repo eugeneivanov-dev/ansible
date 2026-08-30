@@ -5,17 +5,21 @@
 #   ansible-playbook tests/render.yml
 # Output: /tmp/rendered/prometheus.yml, /tmp/rendered/alertmanager.yml,
 # /tmp/rendered/blackbox.yml, /tmp/rendered/blackbox_*.json,
-# /tmp/rendered/pve.yml, /tmp/rendered/pve.json
+# /tmp/rendered/pve.yml, /tmp/rendered/pve.json,
+# /tmp/rendered/loki.yml, /tmp/rendered/config.alloy
 
 - name: Render monitoring config templates
   hosts: localhost
   connection: local
   gather_facts: false
   vars_files:
+    - ../group_vars/all/main.yml
     - ../roles/svc_prometheus/defaults/main.yml
     - ../roles/svc_alertmanager/defaults/main.yml
     - ../roles/svc_blackbox_exporter/defaults/main.yml
     - ../roles/svc_pve_exporter/defaults/main.yml
+    - ../roles/svc_loki/defaults/main.yml
+    - ../roles/rhel_log_agent/defaults/main.yml
     - render-vars.yml
   tasks:
     - name: Create output directory
@@ -64,4 +68,16 @@
       ansible.builtin.template:
         src: ../roles/svc_prometheus/templates/pve_targets.json.j2
         dest: /tmp/rendered/pve.json
+        mode: "0644"
+
+    - name: Render loki.yml
+      ansible.builtin.template:
+        src: ../roles/svc_loki/templates/loki.yml.j2
+        dest: /tmp/rendered/loki.yml
+        mode: "0644"
+
+    - name: Render alloy agent config
+      ansible.builtin.template:
+        src: ../roles/rhel_log_agent/templates/config.alloy.j2
+        dest: /tmp/rendered/config.alloy
         mode: "0644"
