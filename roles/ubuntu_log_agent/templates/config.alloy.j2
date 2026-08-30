@@ -2,11 +2,16 @@
 loki.source.journal "fleet" {
   forward_to    = [loki.write.monitor.receiver]
   relabel_rules = loki.relabel.journal.rules
-  labels        = { job = "systemd-journal", host = "{{ inventory_hostname }}" }
+  labels        = { host = "{{ inventory_hostname }}" }
 }
 
 loki.relabel "journal" {
   forward_to = []
+
+  rule {
+    target_label = "job"
+    replacement  = "systemd-journal"
+  }
 
   rule {
     source_labels = ["__journal_syslog_identifier"]
