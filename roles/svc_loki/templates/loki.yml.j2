@@ -1,0 +1,56 @@
+{{ ansible_managed | comment }}
+auth_enabled: false
+
+server:
+  http_listen_address: 0.0.0.0
+  http_listen_port: {{ svc_loki_http_port }}
+  grpc_listen_address: 127.0.0.1
+  grpc_listen_port: {{ svc_loki_grpc_port }}
+  log_level: info
+
+common:
+  path_prefix: {{ svc_loki_data_dir }}
+  storage:
+    filesystem:
+      chunks_directory: {{ svc_loki_data_dir }}/chunks
+      rules_directory: {{ svc_loki_data_dir }}/rules
+  instance_addr: 127.0.0.1
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: "2026-01-01"
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  tsdb_shipper:
+    active_index_directory: {{ svc_loki_data_dir }}/tsdb-index
+    cache_location: {{ svc_loki_data_dir }}/tsdb-cache
+
+ingester:
+  chunk_encoding: {{ svc_loki_chunk_encoding }}
+
+compactor:
+  working_directory: {{ svc_loki_data_dir }}/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
+
+limits_config:
+  retention_period: {{ svc_loki_retention_period }}
+  reject_old_samples: true
+  reject_old_samples_max_age: {{ svc_loki_reject_old_samples_max_age }}
+  volume_enabled: true
+
+ruler:
+  enable_api: false
+
+analytics:
+  reporting_enabled: false

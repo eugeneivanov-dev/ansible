@@ -1,0 +1,29 @@
+---
+# Data disk layout. The block device itself is deliberately NOT defaulted:
+# it must be declared per host in host_vars (svc_loki_data_device),
+# and the role refuses to touch a device that already carries a signature.
+# Hosts without the variable keep Loki data on the root filesystem.
+svc_loki_data_vg: vg_loki
+svc_loki_data_lv: lv_data
+svc_loki_data_fstype: xfs
+svc_loki_data_dir: /var/lib/loki
+
+# Pinned upstream release. Version and checksum move together:
+# both come from https://github.com/grafana/loki/releases (loki-linux-amd64.zip).
+svc_loki_version: "3.7.7"
+svc_loki_checksum: "sha256:2ddedde361e7026f15627c28ef2ae79a3a82b4a89434795995891edf733a05ff"
+svc_loki_install_dir: /opt/loki
+svc_loki_config_dir: /etc/loki
+
+# Listener: agents on every fleet host push over the network, so the HTTP
+# port binds on all interfaces; firewalld admits it from the lab subnet only.
+# gRPC stays on localhost — single-binary mode needs it internally only.
+svc_loki_http_port: 3100
+svc_loki_grpc_port: 9096
+svc_loki_allowed_source: "{{ lab_subnet }}"
+
+# Retention: time is the only limit Loki offers; the data volume is sized
+# with multiples of headroom so retention never meets a full disk.
+svc_loki_retention_period: 90d
+svc_loki_chunk_encoding: snappy
+svc_loki_reject_old_samples_max_age: 168h

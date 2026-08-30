@@ -1,0 +1,10 @@
+---
+- name: Deploy loki.yml
+  ansible.builtin.template:
+    src: loki.yml.j2
+    dest: "{{ svc_loki_config_dir }}/loki.yml"
+    owner: root
+    group: loki
+    mode: "0640"
+    validate: "{{ svc_loki_install_dir }}/loki-linux-amd64 -config.file=%s -verify-config"
+  notify: Restart loki

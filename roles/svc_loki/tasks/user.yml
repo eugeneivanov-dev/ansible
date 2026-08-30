@@ -1,0 +1,14 @@
+---
+- name: Create loki system group
+  ansible.builtin.group:
+    name: loki
+    system: true
+
+- name: Create loki system user
+  ansible.builtin.user:
+    name: loki
+    group: loki
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ svc_loki_data_dir }}"
+    create_home: false

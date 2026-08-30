@@ -1,0 +1,64 @@
+---
+- name: Assert data device is declared for this host
+  ansible.builtin.assert:
+    that:
+      - svc_loki_data_device is defined
+    fail_msg: >-
+      svc_loki_data_device is not set. Declare the Loki data block device
+      in host_vars for this host; the role never guesses block devices.
+
+- name: Check whether the volume group already exists
+  ansible.builtin.command:
+    cmd: vgs --noheadings -o vg_name {{ svc_loki_data_vg }}
+  register: svc_loki_vg_check
+  changed_when: false
+  failed_when: false
+
+- name: Read existing signatures on the data device
+  ansible.builtin.command:
+    cmd: blkid -p {{ svc_loki_data_device }}
+  register: svc_loki_blkid
+  changed_when: false
+  failed_when: false
+  when: svc_loki_vg_check.rc != 0
+
+- name: Refuse to touch a device that already carries a signature
+  ansible.builtin.assert:
+    that:
+      - svc_loki_blkid.rc != 0
+    fail_msg: >-
+      {{ svc_loki_data_device }} already carries a filesystem or
+      partition signature and volume group {{ svc_loki_data_vg }}
+      does not exist. Refusing to touch it: wipe the device manually
+      if it is really meant for Loki data.
+  when: svc_loki_vg_check.rc != 0
+
+- name: Create volume group on the data device
+  community.general.lvg:
+    vg: "{{ svc_loki_data_vg }}"
+    pvs: "{{ svc_loki_data_device }}"
+
+- name: Create logical volume for Loki data
+  community.general.lvol:
+    vg: "{{ svc_loki_data_vg }}"
+    lv: "{{ svc_loki_data_lv }}"
+    size: 100%VG
+
+- name: Create filesystem on the data logical volume
+  community.general.filesystem:
+    fstype: "{{ svc_loki_data_fstype }}"
+    dev: "/dev/{{ svc_loki_data_vg }}/{{ svc_loki_data_lv }}"
+
+- name: Mount the data filesystem
+  ansible.posix.mount:
+    path: "{{ svc_loki_data_dir }}"
+    src: "/dev/{{ svc_loki_data_vg }}/{{ svc_loki_data_lv }}"
+    fstype: "{{ svc_loki_data_fstype }}"
+    opts: defaults
+    state: mounted
+
+- name: Restore SELinux context on the data mount
+  ansible.builtin.command:
+    cmd: restorecon -R {{ svc_loki_data_dir }}
+  register: svc_loki_restorecon
+  changed_when: false

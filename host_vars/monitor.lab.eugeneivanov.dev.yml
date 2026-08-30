@@ -1,2 +1,3 @@
 ---
 svc_prometheus_tsdb_device: /dev/sdb
+svc_loki_data_device: /dev/sdc

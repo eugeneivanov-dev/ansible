@@ -1,0 +1,19 @@
+---
+- name: Data disk layout
+  ansible.builtin.import_tasks: disk.yml
+  when: svc_loki_data_device is defined
+
+- name: Service user
+  ansible.builtin.import_tasks: user.yml
+
+- name: Directories and ownership
+  ansible.builtin.import_tasks: dirs.yml
+
+- name: Pinned binary installation
+  ansible.builtin.import_tasks: binary.yml
+
+- name: Loki configuration
+  ansible.builtin.import_tasks: config.yml
+
+- name: Systemd service and firewall
+  ansible.builtin.import_tasks: service.yml

@@ -1,9 +1,10 @@
 ---
 # Services layer — infrastructure services on top of the OS baseline (site.yml).
 # Roles arrive per phase: svc_blackbox_exporter, svc_pve_exporter,
-# svc_prometheus, svc_alertmanager, svc_grafana. Exporters precede
+# svc_prometheus, svc_alertmanager, svc_loki, svc_grafana. Exporters precede
 # Prometheus so that a clean run brings scrape endpoints up before
-# anything scrapes them.
+# anything scrapes them; Loki precedes Grafana, which consumes it as a
+# datasource.
 
 - name: Monitoring stack
   hosts: monitoring
@@ -13,4 +14,5 @@
     - svc_pve_exporter
     - svc_prometheus
     - svc_alertmanager
+    - svc_loki
     - svc_grafana

@@ -1,0 +1,16 @@
+---
+- name: Create Loki config directory
+  ansible.builtin.file:
+    path: "{{ svc_loki_config_dir }}"
+    state: directory
+    owner: root
+    group: loki
+    mode: "0750"
+
+- name: Own the Loki data directory
+  ansible.builtin.file:
+    path: "{{ svc_loki_data_dir }}"
+    state: directory
+    owner: loki
+    group: loki
+    mode: "0750"

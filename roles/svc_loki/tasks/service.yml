@@ -1,0 +1,23 @@
+---
+- name: Deploy Loki systemd unit
+  ansible.builtin.template:
+    src: loki.service.j2
+    dest: /etc/systemd/system/loki.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart loki
+
+- name: Allow Loki push from the lab subnet
+  ansible.posix.firewalld:
+    rich_rule: 'rule family="ipv4" source address="{{ svc_loki_allowed_source }}" port port="{{ svc_loki_http_port }}" protocol="tcp" accept'
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Enable and start Loki
+  ansible.builtin.systemd_service:
+    name: loki
+    enabled: true
+    state: started
+    daemon_reload: true
