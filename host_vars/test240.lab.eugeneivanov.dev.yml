@@ -1,3 +1,4 @@
 ---
 svc_prometheus_tsdb_device: /dev/sda
 svc_prometheus_snapshot_dest_subdir: test
+svc_loki_data_device: /dev/sdc
