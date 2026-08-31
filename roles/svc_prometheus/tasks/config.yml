@@ -13,6 +13,7 @@
     - watchdog.rules.yml
     - blackbox.rules.yml
     - pve.rules.yml
+    - loki.rules.yml
   notify: Restart prometheus
 
 - name: Deploy blackbox probe targets

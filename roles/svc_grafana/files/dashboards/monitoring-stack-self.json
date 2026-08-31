@@ -127,6 +127,26 @@
       "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
     },
     {
+      "id": 7,
+      "type": "stat",
+      "title": "Loki Up",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 18, "y": 0 },
+      "targets": [
+        { "refId": "A", "expr": "up{job=\"loki\"}", "instant": true }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
       "id": 10,
       "type": "timeseries",
       "title": "TSDB Head Series",
@@ -198,6 +218,37 @@
         { "refId": "B", "expr": "prometheus_tsdb_wal_storage_size_bytes", "legendFormat": "wal" }
       ],
       "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Loki Ingest Rate",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(loki_distributor_lines_received_total[5m]))", "legendFormat": "lines/s" },
+        { "refId": "B", "expr": "sum(rate(loki_distributor_bytes_received_total[5m]))", "legendFormat": "bytes/s" }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "bytes/s" }, "properties": [ { "id": "unit", "value": "Bps" }, { "id": "custom.axisPlacement", "value": "right" } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Loki Ingester Memory",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "targets": [
+        { "refId": "A", "expr": "sum(loki_ingester_memory_streams)", "legendFormat": "streams" },
+        { "refId": "B", "expr": "loki_ingester_memory_chunks", "legendFormat": "chunks" }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
     }
   ]

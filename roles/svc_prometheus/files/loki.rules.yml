@@ -1,0 +1,37 @@
+---
+groups:
+  - name: loki
+    rules:
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Loki on {{ $labels.instance }} is down"
+          description: >-
+            Loki has not been scraped successfully for 2 minutes. Fleet
+            agents retry for a few minutes and then drop batches — log
+            lines are being lost while this fires.
+
+      - alert: LokiIngestStalled
+        expr: rate(loki_distributor_lines_received_total[10m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Loki on {{ $labels.instance }} receives no log lines"
+          description: >-
+            No log lines have been accepted by Loki for 15 minutes while
+            the process is up. Check the fleet agents (alloy.service) and
+            the push path on port 3100.
+
+      - alert: LokiRestartingTooOften
+        expr: changes(process_start_time_seconds{job="loki"}[1h]) > 2
+        labels:
+          severity: critical
+        annotations:
+          summary: "Loki on {{ $labels.instance }} restarting repeatedly"
+          description: >-
+            The Loki process restarted more than twice in the last hour —
+            possible crash loop.
