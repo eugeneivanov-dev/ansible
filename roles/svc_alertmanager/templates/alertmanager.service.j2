@@ -44,7 +44,8 @@ MemoryDenyWriteExecute=true
 RemoveIPC=true
 SystemCallArchitectures=native
 UMask=0077
-SystemCallFilter=@system-service ~@privileged
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
 
 [Install]
 WantedBy=multi-user.target
