@@ -16,9 +16,11 @@ Restart=on-failure
 # AF_NETLINK added: netdev collector uses netlink sockets (nixpkgs exporters/node.nix)
 # @clock allowed: timex collector calls adjtimex; CAP_SYS_TIME is empty so writes
 # are denied by the kernel (SIGSYS coredump verified on test240)
-# open_tree denied with ENOSYS (not SIGSYS): pathrs-lite probes it once at init
-# and falls back cleanly, as on kernels without the mount API (SIGSYS coredump
-# verified on test240, audit syscall=428)
+# open_tree allowed: pathrs-lite probes it once at init and SIGSYS kills the
+# process (audit syscall=428, coredump verified on test240); a per-syscall
+# ENOSYS action does not exist for allowlist filters, and a global
+# SystemCallErrorNumber would silence every future violation, so the single
+# call is allowed instead; abusive use is gated by the empty capability set
 NoNewPrivileges=true
 CapabilityBoundingSet=
 ProtectSystem=strict
@@ -44,7 +46,7 @@ UMask=0077
 SystemCallFilter=@system-service
 SystemCallFilter=~@privileged
 SystemCallFilter=@clock
-SystemCallFilter=~open_tree:ENOSYS
+SystemCallFilter=open_tree
 
 [Install]
 WantedBy=multi-user.target
