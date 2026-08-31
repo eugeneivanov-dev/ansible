@@ -1,8 +1,9 @@
+{{ ansible_managed | comment }}
 [Unit]
-Description=Grafana Alloy log shipping agent
+Description=Grafana Alloy
 Documentation=https://grafana.com/docs/alloy/latest/
-After=network-online.target
 Wants=network-online.target
+After=network-online.target
 
 [Service]
 User=alloy
@@ -17,15 +18,33 @@ Restart=on-failure
 RestartSec=5s
 TimeoutStopSec=20s
 
+# hardening v2 (service)
 NoNewPrivileges=true
+CapabilityBoundingSet=
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths={{ rhel_log_agent_state_dir }}
 PrivateTmp=true
+PrivateDevices=true
+DeviceAllow=
 ProtectKernelTunables=true
 ProtectKernelModules=true
+ProtectKernelLogs=true
 ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
 RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+SystemCallArchitectures=native
+UMask=0077
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
 
 [Install]
 WantedBy=multi-user.target
