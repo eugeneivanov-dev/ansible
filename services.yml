@@ -10,9 +10,15 @@
   hosts: monitoring
   become: true
   roles:
-    - svc_blackbox_exporter
-    - svc_pve_exporter
-    - svc_prometheus
-    - svc_alertmanager
-    - svc_loki
-    - svc_grafana
+    - role: svc_blackbox_exporter
+      tags: svc_blackbox_exporter
+    - role: svc_pve_exporter
+      tags: svc_pve_exporter
+    - role: svc_prometheus
+      tags: svc_prometheus
+    - role: svc_alertmanager
+      tags: svc_alertmanager
+    - role: svc_loki
+      tags: svc_loki
+    - role: svc_grafana
+      tags: svc_grafana
