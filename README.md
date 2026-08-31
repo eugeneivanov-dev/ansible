@@ -4,7 +4,7 @@
 
 [![lint](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml/badge.svg)](https://github.com/eugeneivanov-dev/ansible/actions/workflows/lint.yml)
 
-Configuration management for the infrastructure lab behind [eugeneivanov.dev](https://eugeneivanov.dev). This repository holds two layers. The OS baseline: the standard every VM used to get by hand, rewritten as idempotent roles for both fleets — RHEL and Ubuntu. And the services layer on top of it: the lab's monitoring stack — Prometheus, Alertmanager, Grafana, and the Blackbox and PVE exporters as native systemd services — built, migrated to production, and proven by clean-install runs. A new VM reaches the lab standard by running a playbook; an existing one proves it still matches by running the same playbook in check mode.
+Configuration management for the infrastructure lab behind [eugeneivanov.dev](https://eugeneivanov.dev). This repository holds two layers. The OS baseline: the standard every VM used to get by hand, rewritten as idempotent roles for both fleets — RHEL and Ubuntu — including the metrics and log agents every host reports through. And the services layer on top of it: the lab's observability stack — Prometheus, Alertmanager, Loki, Grafana, and the Blackbox and PVE exporters as native systemd services — built, migrated to production, and proven by clean-install runs. A new VM reaches the lab standard by running a playbook; an existing one proves it still matches by running the same playbook in check mode.
 
 Project pages:  
 [Ansible Baseline for the Lab](https://eugeneivanov.dev/projects/ansible-baseline-for-the-lab/)  
@@ -22,16 +22,16 @@ Project pages:
 ```
 ansible.cfg               defaults: inventory path, remote user
 bootstrap.yml             one-time play: creates the automation user on new hosts (both fleets)
-site.yml                  two plays: rhel baseline (nine roles), ubuntu baseline (nine roles)
-services.yml              services layer on top of the baseline: the monitoring stack (five svc_* roles)
+site.yml                  two plays: rhel baseline (ten roles), ubuntu baseline (ten roles)
+services.yml              services layer on top of the baseline: the observability stack (six svc_* roles)
 inventory/hosts.yml       three groups: rhel, ubuntu — the managed fleets; monitoring — the services-layer host
-group_vars/all/           main.yml — lab facts (resolvers, search domain, gateway, monitor address, CA endpoints, trusted networks, node_exporter pin)
+group_vars/all/           main.yml — lab facts (resolvers, search domain, gateway, subnet, monitor address, Loki push endpoint, CA endpoints and root checksum, trusted networks, agent pins)
 group_vars/rhel/          rhel role inputs, referencing the lab facts; vault.yml.example — template for the encrypted vault
 group_vars/ubuntu/        ubuntu role inputs, referencing the lab facts
 group_vars/monitoring/    monitoring services inputs; vault.yml.example — template for the services vault
-host_vars/                per-host values: netplan address, app ports as port + source pairs, TSDB device on the monitoring host
+host_vars/                per-host values: netplan address, app ports as port + source pairs, data devices on the monitoring host
 roles/                    baseline roles (rhel_*, ubuntu_*) and services roles (svc_*), one topic each
-tests/                    CI fixtures: render.yml renders the monitoring config templates with fake values for validation
+tests/                    CI fixtures: render.yml renders the observability config templates with fake values for validation
 ```
 
 ## Variables
@@ -40,7 +40,7 @@ Where values come from and which hosts see them:
 
 ```mermaid
 flowchart TB
-    lab_facts["group_vars/all/main.yml<br/>lab facts: resolvers, search domain, gateway, monitor IP, CA endpoints, trusted networks, node_exporter pin"]
+    lab_facts["group_vars/all/main.yml<br/>lab facts: resolvers, search domain, gateway, subnet, monitor IP, Loki push endpoint, CA endpoints, trusted networks, agent pins"]
 
     subgraph rhel_inputs["rhel inputs"]
         vault["group_vars/rhel/vault.yml<br/>encrypted, outside git"]
@@ -54,7 +54,7 @@ flowchart TB
 
     subgraph monitoring_inputs["monitoring inputs"]
         mon_vault["group_vars/monitoring/vault.yml<br/>encrypted, outside git"]
-        mon_host_vars["host_vars/&lt;monitor fqdn&gt;.yml<br/>TSDB device, snapshot subdir"]
+        mon_host_vars["host_vars/&lt;monitor fqdn&gt;.yml<br/>TSDB device, Loki data device, snapshot subdir"]
     end
 
     rhel["rhel group — managed by site.yml"]
@@ -74,7 +74,7 @@ flowchart TB
 
 Lab facts — values that belong to the lab itself, not to any fleet — live once in `group_vars/all/main.yml`. Fleet role inputs reference them (`rhel_dns_resolver_servers: "{{ lab_dns_servers }}"`), so a value changes in one place and every consumer follows. Roles carry no site-specific values. Secrets sit in the group that consumes them: the baseline vault lives in `group_vars/rhel/`, visible to the rhel play only, and the services layer follows the same rule with its own vault in `group_vars/monitoring/`.
 
-A host_vars file declares only what makes the host unique. The minimal one is a single line — the host's address. The monitoring host declares two: the block device for the TSDB volume (deliberately not defaulted — disk enumeration order differs between installs, and the role refuses to touch a device that already carries a signature) and its snapshot subdirectory on the NAS dump share.
+A host_vars file declares only what makes the host unique. The minimal one is a single line — the host's address. The monitoring host declares three: the block devices for the TSDB and Loki data volumes (deliberately not defaulted — disk enumeration order differs between installs, and the roles refuse to touch a device that already carries a signature) and its snapshot subdirectory on the NAS dump share.
 
 Both fleets connect under one automation user — the `remote_user` default in `ansible.cfg`. A host answers it after `bootstrap.yml` has run against it; until then it shows up as unreachable in full-fleet runs.
 
@@ -93,6 +93,7 @@ Role names and tags carry the fleet prefix: `rhel_*` and `ubuntu_*`. `site.yml` 
 7. **rhel_packages** — the lab's standard package set
 8. **rhel_dns_resolver** — clients point at the lab's own nameservers
 9. **rhel_monitoring_agent** — node_exporter, reporting to the lab's monitoring host
+10. **rhel_log_agent** — Grafana Alloy as a pinned binary shipping journald to the lab's Loki; labels job / host / unit / level set by relabel rules; config validated with `alloy validate` on deploy
 
 The ubuntu play follows in this order:
 
@@ -104,21 +105,23 @@ The ubuntu play follows in this order:
 6. **ubuntu_packages** — the lab's standard package set
 7. **ubuntu_netplan** — owns the host's netplan configuration; cloud-init network config disabled
 8. **ubuntu_monitoring_agent** — node_exporter as a pinned binary, replacing the packaged exporter; optional textfile collector directory for hosts that publish their own metrics
-9. **ubuntu_hostname** — static hostname set to the inventory FQDN, owning the 127.0.1.1 entry in /etc/hosts
+9. **ubuntu_log_agent** — Grafana Alloy shipping journald to Loki, the same role shape as its rhel counterpart
+10. **ubuntu_hostname** — static hostname set to the inventory FQDN, owning the 127.0.1.1 entry in /etc/hosts
 
 The order is designed for the worst moment of interruption: security layers run before updates, so a play that dies halfway leaves the host locked down and unpatched rather than patched and open. Both plays follow the same principle.
 
 ### Services layer (services.yml)
 
-The monitoring stack runs on a dedicated RHEL host in the `monitoring` group — every component a pinned native systemd service, no containers. The exporters precede Prometheus so a clean run brings the scraped endpoints up before anything scrapes them:
+The observability stack runs on a dedicated RHEL host in the `monitoring` group — every component a pinned native systemd service, no containers. The exporters precede Prometheus so a clean run brings the scraped endpoints up before anything scrapes them, and Loki precedes Grafana, which consumes it as a datasource:
 
 1. **svc_blackbox_exporter** — Blackbox Exporter as a pinned binary: versioned /opt install behind a symlink, hardened unit, loopback-only listener; probe modules rendered from a template (http, https with enforced TLS, https without verification for self-signed appliances, tcp, dns)
 2. **svc_pve_exporter** — Proxmox VE metrics exporter: a python package in a dedicated venv, one multi-target instance on localhost querying both cluster nodes over the API by FQDN, TLS verified against the system CA bundle; the API token (read-only PVEAuditor role) comes from vault
-3. **svc_prometheus** — Prometheus as a pinned binary on a dedicated TSDB volume (LVM, xfs, protective contract on the block device), loopback-only listener, explicit retention by time and size; fleet scrape targets generated from the inventory groups via file_sd, blackbox and pve targets rendered from vault-held lists; alert rules as static files split by metric source (node, prometheus, watchdog, blackbox, pve), every rule carrying a severity, validated with promtool on deploy; TSDB snapshot backup — snapshot via the admin API, copied to the NAS over NFS with rotation, driven by a systemd timer
+3. **svc_prometheus** — Prometheus as a pinned binary on a dedicated TSDB volume (LVM, xfs, protective contract on the block device), loopback-only listener, explicit retention by time and size; fleet scrape targets generated from the inventory groups via file_sd, blackbox and pve targets rendered from vault-held lists; alert rules as static files split by metric source (node, prometheus, watchdog, blackbox, pve, loki), every rule carrying a severity, validated with promtool on deploy; TSDB snapshot backup — snapshot via the admin API, copied to the NAS over NFS with rotation, driven by a systemd timer
 4. **svc_alertmanager** — Alertmanager as a pinned binary, loopback-only: severity-based routing (critical / warning / info) to email receivers, a watchdog receiver pinging an external dead man's switch, inhibit rules so a down host suppresses its own warnings; SMTP credentials from vault; config validated with amtool on deploy
-5. **svc_grafana** — Grafana from the vendor rpm repository (version pinned, protected from fleet updates via excludepkgs), TLS from the lab's internal CA over ACME with automatic renewal, unified alerting disabled — Alertmanager owns alerting; datasource and dashboards provisioned entirely from git, UI saves rejected by design; firewall opens the UI to the lab's trusted networks only
+5. **svc_loki** — Loki as a pinned binary on a dedicated data volume (LVM, xfs, the same protective contract), single-binary mode with filesystem storage and TSDB index, compactor-driven time retention; the HTTP push listener is admitted from the lab subnet only via firewalld, gRPC stays on loopback; config validated with `loki -verify-config` on deploy
+6. **svc_grafana** — Grafana from the vendor rpm repository (version pinned, protected from fleet updates via excludepkgs), TLS from the lab's internal CA over ACME with automatic renewal, the root anchor verified against a pinned checksum, unified alerting disabled — Alertmanager owns alerting; Prometheus and Loki datasources and all dashboards provisioned entirely from git, UI saves rejected by design; firewall opens the UI to the lab's trusted networks only
 
-Prometheus and Alertmanager never listen on the network — Grafana is the stack's only exposed endpoint. The alerting chain is closed from outside: an always-firing Watchdog alert pings an external service, so silence of the whole stack is itself an alert.
+Prometheus and Alertmanager never listen on the network, Loki accepts log pushes from the lab subnet alone — Grafana is the stack's only user-facing endpoint. The alerting chain is closed from outside: an always-firing Watchdog alert pings an external service, so silence of the whole stack is itself an alert.
 
 ## Package baseline
 
@@ -135,7 +138,7 @@ The sets differ where the platforms do: SELinux tooling exists only on RHEL, `bi
 
 The encrypted vault files never enter git. The repository carries a `vault.yml.example` with every expected key next to each real vault's location — `group_vars/rhel/` for the baseline, `group_vars/monitoring/` for the services layer; the real `vault.yml` is created from the template, encrypted with Ansible Vault, and stays on the machines that run plays. The vault passphrase lives outside the repository too — its path is provided by the `ANSIBLE_VAULT_PASSWORD_FILE` environment variable on each machine.
 
-The monitoring vault holds the SMTP credentials and alert destination for Alertmanager, the Grafana admin password, the dead man's switch ping URL, the blackbox probe target lists, and the Proxmox API token with its node targets — targets are treated as secrets, and their structure is mirrored by the example file and the CI fixtures with fake values.
+The monitoring vault holds the SMTP credentials and alert destination for Alertmanager, the Grafana admin password, the dead man's switch ping URL, the blackbox probe target lists, and the Proxmox API token with its node targets — targets are treated as secrets, and their structure is mirrored by the example file and the CI fixtures with fake values. Log delivery carries no secret: it stays inside the lab subnet without authentication.
 
 Ansible Vault here is a deliberate temporary minimum: secrets move to HashiCorp Vault when it arrives as its own service.
 
@@ -172,15 +175,15 @@ ansible-playbook site.yml --limit newhost.example.com
 
 ## Scope
 
-Two layers are managed from here. The OS baseline — the layer every service stands on; both fleets are fully managed. And the services layer — the monitoring stack as code: the production monitoring host is built by playbook alone, was migrated from its hand-built predecessor by a clean cut-over, and its roles are proven by clean-install runs on disposable test VMs before touching the live host. Application deployment for the remaining services stays with each service's own mechanism.
+Two layers are managed from here. The OS baseline — the layer every service stands on; both fleets are fully managed, agents included. And the services layer — the observability stack as code: the production monitoring host is built by playbook alone, was migrated from its hand-built predecessor by a clean cut-over, and its roles are proven by clean-install runs on disposable test VMs before touching the live host. Application deployment for the remaining services stays with each service's own mechanism.
 
-What stays outside the code by design: VM creation and OS installation, DNS zone records, the NAS export allow-list, the Proxmox API token lifecycle, and runtime operations like alert silences — procedures, not configuration.
+What stays outside the code by design: VM creation, OS installation and data-disk attachment, DNS zone records, the NAS export allow-list, the Proxmox API token lifecycle, and runtime operations like alert silences — procedures, not configuration.
 
 The lab is the proving ground behind [Proven Infrastructure Group](https://proveninfra.com): methods are rehearsed here before they reach client production. The code encodes the lab's decisions — addressing, DNS names, package choices — and is published as a working example, not a drop-in solution.
 
 ## CI
 
-Every push runs yamllint and ansible-lint (production profile) with pinned versions — the same commands and versions used locally. A second job validates the monitoring configs: alert rules are checked directly with promtool, and the Prometheus, Alertmanager, Blackbox and PVE exporter templates — including the file_sd target files — are rendered with fixture values (`tests/`), then checked with promtool and amtool — the same pinned versions the stack runs.
+Every push runs yamllint and ansible-lint (production profile) with pinned versions — the same commands and versions used locally. A second job validates the observability configs: alert rules are checked directly with promtool, and the Prometheus, Alertmanager, Loki, Alloy, Blackbox and PVE exporter templates — including the file_sd target files — are rendered with fixture values (`tests/`), then checked with promtool, amtool, `loki -verify-config` and `alloy validate` — the same pinned versions the stack runs.
 
 ## History
 
