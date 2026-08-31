@@ -1,9 +1,9 @@
 {{ ansible_managed | comment }}
 [Unit]
-Description=Prometheus time series database
-Documentation=https://prometheus.io/docs/
-After=network-online.target
+Description=Prometheus
+Documentation=https://prometheus.io/docs/introduction/overview/
 Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
@@ -20,15 +20,33 @@ ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=5s
 
+# hardening v2 (service)
 NoNewPrivileges=true
+CapabilityBoundingSet=
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths={{ svc_prometheus_tsdb_mount }}
 PrivateTmp=true
+PrivateDevices=true
+DeviceAllow=
 ProtectKernelTunables=true
 ProtectKernelModules=true
+ProtectKernelLogs=true
 ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
 RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+SystemCallArchitectures=native
+UMask=0077
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
 
 [Install]
 WantedBy=multi-user.target
