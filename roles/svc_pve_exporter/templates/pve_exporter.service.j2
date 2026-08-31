@@ -1,9 +1,9 @@
-# {{ ansible_managed }}
+{{ ansible_managed | comment }}
 [Unit]
-Description=Prometheus Proxmox VE exporter
+Description=Proxmox VE Exporter
 Documentation=https://github.com/prometheus-pve/prometheus-pve-exporter
-After=network-online.target
 Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
@@ -15,19 +15,32 @@ ExecStart={{ svc_pve_exporter_venv_dir }}/bin/pve_exporter \
 Restart=on-failure
 RestartSec=5
 
-# Hardening
+# hardening v2 (service)
 NoNewPrivileges=true
+CapabilityBoundingSet=
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 PrivateDevices=true
+DeviceAllow=
 ProtectKernelTunables=true
 ProtectKernelModules=true
+ProtectKernelLogs=true
 ProtectControlGroups=true
-RestrictAddressFamilies=AF_INET AF_INET6
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 LockPersonality=true
 MemoryDenyWriteExecute=true
-RestrictRealtime=true
+RemoveIPC=true
+SystemCallArchitectures=native
+UMask=0077
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
 
 [Install]
 WantedBy=multi-user.target
