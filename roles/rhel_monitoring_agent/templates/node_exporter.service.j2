@@ -16,11 +16,12 @@ Restart=on-failure
 # AF_NETLINK added: netdev collector uses netlink sockets (nixpkgs exporters/node.nix)
 # @clock allowed: timex collector calls adjtimex; CAP_SYS_TIME is empty so writes
 # are denied by the kernel (SIGSYS coredump verified on test240)
-# open_tree allowed: pathrs-lite probes it once at init and SIGSYS kills the
-# process (audit syscall=428, coredump verified on test240); a per-syscall
-# ENOSYS action does not exist for allowlist filters, and a global
-# SystemCallErrorNumber would silence every future violation, so the single
-# call is allowed instead; abusive use is gated by the empty capability set
+# open_tree+fsopen allowed: pathrs-lite probes open_tree at init and then uses
+# fsopen for a private procfs handle; SIGSYS kills both (audit syscall=428, 430,
+# coredumps verified on test240). A per-syscall ENOSYS action does not exist for
+# allowlist filters and a global SystemCallErrorNumber would silence every future
+# violation, so the two calls are allowed; abusive use is gated by the empty
+# capability set (fsopen and open_tree clones need CAP_SYS_ADMIN)
 NoNewPrivileges=true
 CapabilityBoundingSet=
 ProtectSystem=strict
@@ -46,7 +47,7 @@ UMask=0077
 SystemCallFilter=@system-service
 SystemCallFilter=~@privileged
 SystemCallFilter=@clock
-SystemCallFilter=open_tree
+SystemCallFilter=open_tree fsopen
 
 [Install]
 WantedBy=multi-user.target
