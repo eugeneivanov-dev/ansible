@@ -7,4 +7,38 @@ RequiresMountsFor={{ svc_prometheus_snapshot_nfs_mount }}
 
 [Service]
 Type=oneshot
+User=prometheus
+Group=prometheus
 ExecStart=/usr/local/bin/prometheus-snapshot.sh
+
+# hardening v2 (service)
+# runs as the TSDB owner: reads and removes its own snapshot without any
+# capability; the NAS export squashes every client uid to one NAS user
+# (verified on the share: root-written dirs show uid 1024), so the copy
+# needs no root either
+# UMask omitted: the share's own permissions govern what lands on the NAS
+NoNewPrivileges=true
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ svc_prometheus_tsdb_mount }} {{ svc_prometheus_snapshot_nfs_mount }}
+PrivateTmp=true
+PrivateDevices=true
+DeviceAllow=
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
