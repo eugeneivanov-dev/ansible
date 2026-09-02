@@ -6,3 +6,12 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart={{ svc_grafana_acme_home }}/acme.sh --cron --home {{ svc_grafana_acme_home }}
+
+# hardening v2: deferred (task profile candidate)
+# root is required: standalone HTTP-01 binds port 80 and the reload command
+# calls systemctl; state lives in /root/.acme.sh. Hardening is postponed until
+# the open certificate-renewal issue on the monitoring host is resolved, so a
+# sandboxing change is not mixed into an undiagnosed failure. Planned shape:
+# CapabilityBoundingSet=CAP_NET_BIND_SERVICE, ProtectHome=read-only with
+# ReadWritePaths for the acme home and the certificate directory, the rest of
+# the service block unchanged; or move the acme home out of /root first.
