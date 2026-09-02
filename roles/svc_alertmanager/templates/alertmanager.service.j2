@@ -1,9 +1,9 @@
 {{ ansible_managed | comment }}
 [Unit]
-Description=Alertmanager
+Description=Alertmanager for Prometheus
 Documentation=https://prometheus.io/docs/alerting/latest/alertmanager/
-Wants=network-online.target
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple

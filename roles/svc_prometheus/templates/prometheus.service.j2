@@ -1,9 +1,9 @@
 {{ ansible_managed | comment }}
 [Unit]
-Description=Prometheus
-Documentation=https://prometheus.io/docs/introduction/overview/
-Wants=network-online.target
+Description=Prometheus time series database
+Documentation=https://prometheus.io/docs/
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple

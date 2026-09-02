@@ -1,9 +1,9 @@
 {{ ansible_managed | comment }}
 [Unit]
-Description=Loki
+Description=Loki log aggregation
 Documentation=https://grafana.com/docs/loki/latest/
-Wants=network-online.target
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple

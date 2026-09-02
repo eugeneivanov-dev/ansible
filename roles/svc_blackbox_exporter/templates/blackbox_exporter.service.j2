@@ -1,9 +1,9 @@
 {{ ansible_managed | comment }}
 [Unit]
-Description=Blackbox Exporter
+Description=Blackbox exporter for Prometheus probes
 Documentation=https://github.com/prometheus/blackbox_exporter
-Wants=network-online.target
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple

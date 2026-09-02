@@ -1,9 +1,8 @@
-{{ ansible_managed | comment }}
 [Unit]
-Description=Grafana Alloy
+Description=Grafana Alloy log shipping agent
 Documentation=https://grafana.com/docs/alloy/latest/
-Wants=network-online.target
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 User=alloy

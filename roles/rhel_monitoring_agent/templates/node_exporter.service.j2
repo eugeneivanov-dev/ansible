@@ -1,9 +1,7 @@
-{{ ansible_managed | comment }}
 [Unit]
 Description=Prometheus Node Exporter
-Documentation=https://prometheus.io/docs/guides/node-exporter/
-Wants=network-online.target
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 User=node_exporter
