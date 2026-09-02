@@ -55,26 +55,47 @@
     state: enabled
   loop: "{{ lab_trusted_networks }}"
 
+- name: Create acme.sh directories (script tree under /opt, state under /var/lib)
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ svc_grafana_acme_base }}", mode: "0755" }
+    - { path: "{{ svc_grafana_acme_src }}", mode: "0755" }
+    - { path: "{{ svc_grafana_acme_home }}", mode: "0755" }
+    - { path: "{{ svc_grafana_acme_config_home }}", mode: "0700" }
+
 - name: Download acme.sh release tarball
   ansible.builtin.get_url:
     url: "https://github.com/acmesh-official/acme.sh/archive/refs/tags/{{ svc_grafana_acme_version }}.tar.gz"
-    dest: "/root/acme.sh-{{ svc_grafana_acme_version }}.tar.gz"
+    dest: "{{ svc_grafana_acme_src }}/acme.sh-{{ svc_grafana_acme_version }}.tar.gz"
     owner: root
     group: root
     mode: "0644"
 
 - name: Unpack acme.sh release
   ansible.builtin.unarchive:
-    src: "/root/acme.sh-{{ svc_grafana_acme_version }}.tar.gz"
-    dest: /root
+    src: "{{ svc_grafana_acme_src }}/acme.sh-{{ svc_grafana_acme_version }}.tar.gz"
+    dest: "{{ svc_grafana_acme_src }}"
     remote_src: true
-    creates: "/root/acme.sh-{{ svc_grafana_acme_version }}/acme.sh"
+    creates: "{{ svc_grafana_acme_src }}/acme.sh-{{ svc_grafana_acme_version }}/acme.sh"
 
 - name: Install acme.sh (no cron — renewal runs from a systemd timer)
   ansible.builtin.command:
-    cmd: ./acme.sh --install --nocron --home {{ svc_grafana_acme_home }}
-    chdir: "/root/acme.sh-{{ svc_grafana_acme_version }}"
+    cmd: >
+      ./acme.sh --install --nocron
+      --home {{ svc_grafana_acme_home }}
+      --config-home {{ svc_grafana_acme_config_home }}
+    chdir: "{{ svc_grafana_acme_src }}/acme.sh-{{ svc_grafana_acme_version }}"
     creates: "{{ svc_grafana_acme_home }}/acme.sh"
+
+- name: Restore SELinux contexts on the acme.sh trees
+  ansible.builtin.command:
+    cmd: restorecon -R {{ svc_grafana_acme_base }} {{ svc_grafana_acme_config_home }}
+  changed_when: false
 
 - name: Issue the certificate (standalone HTTP-01 against the lab CA)
   ansible.builtin.command:
@@ -84,7 +105,8 @@
       --server {{ lab_ca_acme_directory }}
       --days {{ svc_grafana_acme_days }}
       --home {{ svc_grafana_acme_home }}
-    creates: "{{ svc_grafana_acme_home }}/{{ inventory_hostname }}_ecc/fullchain.cer"
+      --config-home {{ svc_grafana_acme_config_home }}
+    creates: "{{ svc_grafana_acme_config_home }}/{{ inventory_hostname }}_ecc/fullchain.cer"
 
 - name: Create Grafana certificate directory
   ansible.builtin.file:
@@ -93,6 +115,15 @@
     owner: root
     group: grafana
     mode: "0750"
+
+- name: Check whether the certificate is installed for Grafana (reload command recorded)
+  ansible.builtin.command:
+    cmd: >
+      grep -q '^Le_ReloadCmd='
+      {{ svc_grafana_acme_config_home }}/{{ inventory_hostname }}_ecc/{{ inventory_hostname }}.conf
+  register: svc_grafana_installcert
+  changed_when: false
+  failed_when: svc_grafana_installcert.rc not in [0, 1]
 
 - name: Install the certificate for Grafana with a renewal reload command
   ansible.builtin.command:
@@ -103,7 +134,9 @@
       --fullchain-file {{ svc_grafana_cert_file }}
       --reloadcmd "systemctl try-restart grafana-server"
       --home {{ svc_grafana_acme_home }}
-    creates: "{{ svc_grafana_key_file }}"
+      --config-home {{ svc_grafana_acme_config_home }}
+  changed_when: true
+  when: svc_grafana_installcert.rc != 0
 
 - name: Enforce certificate file ownership and modes
   ansible.builtin.file:
@@ -137,6 +170,21 @@
     enabled: true
     state: started
     daemon_reload: true
+
+- name: "Remove the legacy acme.sh tree under /root (refs #8)"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /root/.acme.sh
+    - "/root/acme.sh-{{ svc_grafana_acme_version }}"
+    - "/root/acme.sh-{{ svc_grafana_acme_version }}.tar.gz"
+
+- name: Remove the legacy acme.sh env line from root's bashrc
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    line: '. "/root/.acme.sh/acme.sh.env"'
+    state: absent
 
 - name: Create dashboards directory
   ansible.builtin.file:

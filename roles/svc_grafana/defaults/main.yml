@@ -8,6 +8,13 @@ svc_grafana_cert_file: "{{ svc_grafana_cert_dir }}/fullchain.pem"
 svc_grafana_key_file: "{{ svc_grafana_cert_dir }}/key.pem"
 
 # acme.sh client (runs as root, systemd timer drives renewal).
-svc_grafana_acme_home: /root/.acme.sh
+# The script lives under /opt/acme.sh/bin: that path is labelled bin_t by the
+# default SELinux policy, which systemd's init_t may execute. A home under
+# /root (admin_home_t) is not executable from a unit (refs #8).
+# State (account, keys, certs) is kept apart in /var/lib/acme.sh.
+svc_grafana_acme_base: /opt/acme.sh
+svc_grafana_acme_home: "{{ svc_grafana_acme_base }}/bin"
+svc_grafana_acme_src: "{{ svc_grafana_acme_base }}/src"
+svc_grafana_acme_config_home: /var/lib/acme.sh
 svc_grafana_acme_version: "3.1.1"
 svc_grafana_acme_days: 5
