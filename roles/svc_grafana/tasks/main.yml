@@ -234,3 +234,43 @@
     name: grafana-server
     enabled: true
     state: started
+
+# Listener contract, asserted by fact. grafana.ini declares the UI listener on
+# all interfaces (firewalld admits it from the trusted networks only); the
+# check reads what the kernel actually has bound. Handlers are flushed first:
+# a pending restart would otherwise run at the end of the play, after this
+# check had looked at the old process. The expected address and port mirror
+# the http_addr / http_port literals in grafana.ini.j2: Go binds 0.0.0.0 as a
+# dual-stack socket, which ss reports as "*".
+- name: Listener contract
+  vars:
+    svc_grafana_listen_host: "*"
+    svc_grafana_listen_port: 3000
+  block:
+    - name: Apply a pending Grafana restart before the listener check
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for the Grafana listener
+      community.general.listen_ports_facts:
+        command: ss
+      register: svc_grafana_listen
+      until: >-
+        svc_grafana_listen.ansible_facts.tcp_listen
+        | selectattr('port', 'equalto', svc_grafana_listen_port | int)
+        | list | length > 0
+      retries: 12
+      delay: 5
+
+    - name: Assert Grafana listens on all interfaces
+      ansible.builtin.assert:
+        that:
+          - svc_grafana_listen_found | reject('equalto', svc_grafana_listen_host) | list | length == 0
+        fail_msg: >-
+          grafana listens on {{ svc_grafana_listen_found }} for port
+          {{ svc_grafana_listen_port }}, expected {{ svc_grafana_listen_host }}:{{ svc_grafana_listen_port }}
+        quiet: true
+      vars:
+        svc_grafana_listen_found: >-
+          {{ svc_grafana_listen.ansible_facts.tcp_listen
+             | selectattr('port', 'equalto', svc_grafana_listen_port | int)
+             | map(attribute='address') | unique | list }}
