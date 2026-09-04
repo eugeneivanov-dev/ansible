@@ -21,3 +21,50 @@
     enabled: true
     state: started
     daemon_reload: true
+
+# Listener contract, asserted by fact. loki.yml declares the HTTP push
+# listener on all interfaces (firewalld admits it from the lab subnet only)
+# and gRPC on the loopback; the check reads what the kernel actually has
+# bound. Handlers are flushed first: a pending restart would otherwise run at
+# the end of the play, after this check had looked at the old process. The
+# expected addresses mirror the literals in loki.yml.j2: Go binds 0.0.0.0 as
+# a dual-stack socket, which ss reports as "*".
+- name: Listener contract
+  vars:
+    svc_loki_http_listen_host: "*"
+    svc_loki_grpc_listen_host: "127.0.0.1"
+  block:
+    - name: Apply a pending Loki restart before the listener check
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for the Loki listeners
+      community.general.listen_ports_facts:
+        command: ss
+      register: svc_loki_listen
+      until: >-
+        svc_loki_listen.ansible_facts.tcp_listen
+        | selectattr('port', 'in', [svc_loki_http_port | int, svc_loki_grpc_port | int])
+        | map(attribute='port') | unique | list | length == 2
+      retries: 12
+      delay: 5
+
+    - name: Assert Loki listens for HTTP on all interfaces and for gRPC on the loopback only
+      ansible.builtin.assert:
+        that:
+          - svc_loki_http_listen_found | reject('equalto', svc_loki_http_listen_host) | list | length == 0
+          - svc_loki_grpc_listen_found | reject('equalto', svc_loki_grpc_listen_host) | list | length == 0
+        fail_msg: >-
+          loki listens on {{ svc_loki_http_listen_found }} for port {{ svc_loki_http_port }},
+          expected {{ svc_loki_http_listen_host }}:{{ svc_loki_http_port }};
+          on {{ svc_loki_grpc_listen_found }} for port {{ svc_loki_grpc_port }},
+          expected {{ svc_loki_grpc_listen_host }}:{{ svc_loki_grpc_port }}
+        quiet: true
+      vars:
+        svc_loki_http_listen_found: >-
+          {{ svc_loki_listen.ansible_facts.tcp_listen
+             | selectattr('port', 'equalto', svc_loki_http_port | int)
+             | map(attribute='address') | unique | list }}
+        svc_loki_grpc_listen_found: >-
+          {{ svc_loki_listen.ansible_facts.tcp_listen
+             | selectattr('port', 'equalto', svc_loki_grpc_port | int)
+             | map(attribute='address') | unique | list }}
