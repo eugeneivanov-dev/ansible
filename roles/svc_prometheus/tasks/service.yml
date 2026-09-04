@@ -14,3 +14,41 @@
     enabled: true
     state: started
     daemon_reload: true
+
+# Listener contract, asserted by fact. The unit declares a loopback-only
+# listener; the check reads what the kernel actually has bound. Handlers are
+# flushed first: a pending restart would otherwise run at the end of the play,
+# after this check had looked at the old process. The expected address mirrors
+# the --web.listen-address literal in prometheus.service.j2.
+- name: Listener contract
+  vars:
+    svc_prometheus_listen_host: "127.0.0.1"
+    svc_prometheus_listen_port: 9090
+  block:
+    - name: Apply a pending Prometheus restart before the listener check
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for the Prometheus listener
+      community.general.listen_ports_facts:
+        command: ss
+      register: svc_prometheus_listen
+      until: >-
+        svc_prometheus_listen.ansible_facts.tcp_listen
+        | selectattr('port', 'equalto', svc_prometheus_listen_port | int)
+        | list | length > 0
+      retries: 12
+      delay: 5
+
+    - name: Assert Prometheus listens on the loopback only
+      ansible.builtin.assert:
+        that:
+          - svc_prometheus_listen_found | reject('equalto', svc_prometheus_listen_host) | list | length == 0
+        fail_msg: >-
+          prometheus listens on {{ svc_prometheus_listen_found }} for port
+          {{ svc_prometheus_listen_port }}, expected {{ svc_prometheus_listen_host }}:{{ svc_prometheus_listen_port }}
+        quiet: true
+      vars:
+        svc_prometheus_listen_found: >-
+          {{ svc_prometheus_listen.ansible_facts.tcp_listen
+             | selectattr('port', 'equalto', svc_prometheus_listen_port | int)
+             | map(attribute='address') | unique | list }}
