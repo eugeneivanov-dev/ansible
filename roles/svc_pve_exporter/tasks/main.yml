@@ -67,3 +67,37 @@
     state: started
     enabled: true
     daemon_reload: true
+
+# Listener contract, asserted by fact. The unit declares a loopback-only
+# listener; the check reads what the kernel actually has bound. Handlers are
+# flushed first: a pending restart would otherwise run at the end of the play,
+# after this check had looked at the old process.
+- name: Svc_pve_exporter | Listener contract
+  block:
+    - name: Svc_pve_exporter | Apply a pending restart before the listener check
+      ansible.builtin.meta: flush_handlers
+
+    - name: Svc_pve_exporter | Wait for the pve_exporter listener
+      community.general.listen_ports_facts:
+        command: ss
+      register: svc_pve_exporter_listen
+      until: >-
+        svc_pve_exporter_listen.ansible_facts.tcp_listen
+        | selectattr('port', 'equalto', svc_pve_exporter_listen_port | int)
+        | list | length > 0
+      retries: 12
+      delay: 5
+
+    - name: Svc_pve_exporter | Assert pve_exporter listens on the loopback only
+      ansible.builtin.assert:
+        that:
+          - svc_pve_exporter_listen_found | reject('equalto', svc_pve_exporter_listen_address) | list | length == 0
+        fail_msg: >-
+          pve_exporter listens on {{ svc_pve_exporter_listen_found }} for port
+          {{ svc_pve_exporter_listen_port }}, expected {{ svc_pve_exporter_listen_address }}:{{ svc_pve_exporter_listen_port }}
+        quiet: true
+      vars:
+        svc_pve_exporter_listen_found: >-
+          {{ svc_pve_exporter_listen.ansible_facts.tcp_listen
+             | selectattr('port', 'equalto', svc_pve_exporter_listen_port | int)
+             | map(attribute='address') | unique | list }}
