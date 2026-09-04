@@ -14,3 +14,49 @@
     enabled: true
     state: started
     daemon_reload: true
+
+# Listener contract, asserted by fact. The unit declares a loopback-only web
+# listener and no cluster (gossip) listener at all; the check reads what the
+# kernel actually has bound. Handlers are flushed first: a pending restart
+# would otherwise run at the end of the play, after this check had looked at
+# the old process. The gossip port is Alertmanager's default, which the unit
+# disables with --cluster.listen-address="".
+- name: Listener contract
+  vars:
+    svc_alertmanager_listen_host: "{{ svc_alertmanager_listen_address | split(':') | first }}"
+    svc_alertmanager_listen_port: "{{ svc_alertmanager_listen_address | split(':') | last }}"
+    svc_alertmanager_cluster_port: 9094
+  block:
+    - name: Apply a pending Alertmanager restart before the listener check
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for the Alertmanager listener
+      community.general.listen_ports_facts:
+        command: ss
+      register: svc_alertmanager_listen
+      until: >-
+        svc_alertmanager_listen.ansible_facts.tcp_listen
+        | selectattr('port', 'equalto', svc_alertmanager_listen_port | int)
+        | list | length > 0
+      retries: 12
+      delay: 5
+
+    - name: Assert Alertmanager listens on the loopback only and has no gossip listener
+      ansible.builtin.assert:
+        that:
+          - svc_alertmanager_listen_found | reject('equalto', svc_alertmanager_listen_host) | list | length == 0
+          - svc_alertmanager_cluster_found | length == 0
+        fail_msg: >-
+          alertmanager listens on {{ svc_alertmanager_listen_found }} for port
+          {{ svc_alertmanager_listen_port }}, expected {{ svc_alertmanager_listen_address }};
+          gossip listeners on port {{ svc_alertmanager_cluster_port }}: {{ svc_alertmanager_cluster_found }}, expected none
+        quiet: true
+      vars:
+        svc_alertmanager_listen_found: >-
+          {{ svc_alertmanager_listen.ansible_facts.tcp_listen
+             | selectattr('port', 'equalto', svc_alertmanager_listen_port | int)
+             | map(attribute='address') | unique | list }}
+        svc_alertmanager_cluster_found: >-
+          {{ (svc_alertmanager_listen.ansible_facts.tcp_listen + svc_alertmanager_listen.ansible_facts.udp_listen)
+             | selectattr('port', 'equalto', svc_alertmanager_cluster_port | int)
+             | map(attribute='address') | unique | list }}
