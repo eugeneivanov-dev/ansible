@@ -78,6 +78,15 @@ A host_vars file declares only what makes the host unique. The minimal one is a 
 
 Both fleets connect under one automation user — the `remote_user` default in `ansible.cfg`. A host answers it after `bootstrap.yml` has run against it; until then it shows up as unreachable in full-fleet runs.
 
+## Systemd hardening standard
+
+Every unit template in this repository carries the same hardening block — standard v2, applied uniformly and verified with `systemd-analyze security` (target: OK, ≤ 3.0). Two profiles exist:
+
+- **service** — the base block of 23 directives: NoNewPrivileges, an empty CapabilityBoundingSet, ProtectSystem=strict, ProtectHome, PrivateTmp, PrivateDevices, an empty DeviceAllow, the ProtectKernel* family, ProtectControlGroups, ProtectClock, ProtectHostname, ProtectProc=invisible, RestrictSUIDSGID, RestrictRealtime, RestrictNamespaces, RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX, LockPersonality, MemoryDenyWriteExecute, RemoveIPC, SystemCallArchitectures=native, UMask=0077 — plus a second tier: SystemCallFilter=@system-service with a separate SystemCallFilter=~@privileged line
+- **task** — for root oneshot units driven by timers: explicit capabilities, ProtectSystem=strict with ReadWritePaths, no UMask (no live instance currently; the snapshot unit runs unprivileged under the service profile instead)
+
+Deviations are allowed only when a service demonstrably breaks, and each one lives as a comment on the deviating line in the unit template, naming the cause (e.g. node_exporter drops ProtectClock and allowlists the syscalls its runtime probes; Loki deliberately omits AF_NETLINK and logs a harmless warning). The vendor grafana-server unit already scores OK and is left unmanaged. New units join the repository with this block from day one.
+
 ## Roles and execution order
 
 ### OS baseline (site.yml)
@@ -92,7 +101,7 @@ Role names and tags carry the fleet prefix: `rhel_*` and `ubuntu_*`. `site.yml` 
 6. **rhel_updates** — package updates; reboot only behind an explicit flag, off by default
 7. **rhel_packages** — the lab's standard package set
 8. **rhel_dns_resolver** — clients point at the lab's own nameservers
-9. **rhel_monitoring_agent** — node_exporter, reporting to the lab's monitoring host
+9. **rhel_monitoring_agent** — node_exporter as a pinned binary under a v2-hardened unit, reporting to the lab's monitoring host
 10. **rhel_log_agent** — Grafana Alloy as a pinned binary shipping journald to the lab's Loki; labels job / host / unit / level set by relabel rules; config validated with `alloy validate` on deploy
 
 The ubuntu play follows in this order:
@@ -104,7 +113,7 @@ The ubuntu play follows in this order:
 5. **ubuntu_updates** — unattended-upgrades removed, updates run through the playbook only; reboot behind an explicit flag, off by default
 6. **ubuntu_packages** — the lab's standard package set
 7. **ubuntu_netplan** — owns the host's netplan configuration; cloud-init network config disabled
-8. **ubuntu_monitoring_agent** — node_exporter as a pinned binary, replacing the packaged exporter; optional textfile collector directory for hosts that publish their own metrics
+8. **ubuntu_monitoring_agent** — node_exporter as a pinned binary under a v2-hardened unit, replacing the packaged exporter; optional textfile collector directory for hosts that publish their own metrics
 9. **ubuntu_log_agent** — Grafana Alloy shipping journald to Loki, the same role shape as its rhel counterpart
 10. **ubuntu_hostname** — static hostname set to the inventory FQDN, owning the 127.0.1.1 entry in /etc/hosts
 
@@ -112,14 +121,14 @@ The order is designed for the worst moment of interruption: security layers run 
 
 ### Services layer (services.yml)
 
-The observability stack runs on a dedicated RHEL host in the `monitoring` group — every component a pinned native systemd service, no containers. The exporters precede Prometheus so a clean run brings the scraped endpoints up before anything scrapes them, and Loki precedes Grafana, which consumes it as a datasource:
+The observability stack runs on a dedicated RHEL host in the `monitoring` group — every component a pinned native systemd service under the v2 hardening standard, no containers. Each role carries its own tag, so a single component can be deployed alone. The exporters precede Prometheus so a clean run brings the scraped endpoints up before anything scrapes them, and Loki precedes Grafana, which consumes it as a datasource:
 
-1. **svc_blackbox_exporter** — Blackbox Exporter as a pinned binary: versioned /opt install behind a symlink, hardened unit, loopback-only listener; probe modules rendered from a template (http, https with enforced TLS, https without verification for self-signed appliances, tcp, dns)
+1. **svc_blackbox_exporter** — Blackbox Exporter as a pinned binary: versioned /opt install behind a symlink, loopback-only listener; probe modules rendered from a template (http, https with enforced TLS, https without verification for self-signed appliances, tcp, dns)
 2. **svc_pve_exporter** — Proxmox VE metrics exporter: a python package in a dedicated venv, one multi-target instance on localhost querying both cluster nodes over the API by FQDN, TLS verified against the system CA bundle; the API token (read-only PVEAuditor role) comes from vault
-3. **svc_prometheus** — Prometheus as a pinned binary on a dedicated TSDB volume (LVM, xfs, protective contract on the block device), loopback-only listener, explicit retention by time and size; fleet scrape targets generated from the inventory groups via file_sd, blackbox and pve targets rendered from vault-held lists; alert rules as static files split by metric source (node, prometheus, watchdog, blackbox, pve, loki), every rule carrying a severity, validated with promtool on deploy; TSDB snapshot backup — snapshot via the admin API, copied to the NAS over NFS with rotation, driven by a systemd timer
+3. **svc_prometheus** — Prometheus as a pinned binary on a dedicated TSDB volume (LVM, xfs, protective contract on the block device), loopback-only listener, explicit retention by time and size; fleet scrape targets generated from the inventory groups via file_sd, blackbox and pve targets rendered from vault-held lists; alert rules as static files split by metric source (node, prometheus, watchdog, blackbox, pve, loki), every rule carrying a severity, validated with promtool on deploy; TSDB snapshot backup — snapshot via the admin API, copied to the NAS over NFS with rotation, driven by a systemd timer running unprivileged as the prometheus user
 4. **svc_alertmanager** — Alertmanager as a pinned binary, loopback-only: severity-based routing (critical / warning / info) to email receivers, a watchdog receiver pinging an external dead man's switch, inhibit rules so a down host suppresses its own warnings; SMTP credentials from vault; config validated with amtool on deploy
 5. **svc_loki** — Loki as a pinned binary on a dedicated data volume (LVM, xfs, the same protective contract), single-binary mode with filesystem storage and TSDB index, compactor-driven time retention; the HTTP push listener is admitted from the lab subnet only via firewalld, gRPC stays on loopback; config validated with `loki -verify-config` on deploy
-6. **svc_grafana** — Grafana from the vendor rpm repository (version pinned, protected from fleet updates via excludepkgs), TLS from the lab's internal CA over ACME with automatic renewal, the root anchor verified against a pinned checksum, unified alerting disabled — Alertmanager owns alerting; Prometheus and Loki datasources and all dashboards provisioned entirely from git, UI saves rejected by design; firewall opens the UI to the lab's trusted networks only
+6. **svc_grafana** — Grafana from the vendor rpm repository (version pinned, protected from fleet updates via excludepkgs), TLS from the lab's internal CA over ACME with automatic renewal — the acme.sh client installed on a SELinux-executable path with its state under /var/lib, the root anchor verified against a pinned checksum; unified alerting disabled — Alertmanager owns alerting; Prometheus and Loki datasources and all dashboards provisioned entirely from git, UI saves rejected by design; firewall opens the UI to the lab's trusted networks only
 
 Prometheus and Alertmanager never listen on the network, Loki accepts log pushes from the lab subnet alone — Grafana is the stack's only user-facing endpoint. The alerting chain is closed from outside: an always-firing Watchdog alert pings an external service, so silence of the whole stack is itself an alert.
 
@@ -166,8 +175,11 @@ ansible-playbook services.yml
 # drift check against existing hosts
 ansible-playbook site.yml --check
 
-# one role only
+# one baseline role only
 ansible-playbook site.yml --tags rhel_chrony
+
+# one service only
+ansible-playbook services.yml --tags svc_loki
 
 # scope a run to one host
 ansible-playbook site.yml --limit newhost.example.com
